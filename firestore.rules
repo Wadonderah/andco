@@ -1,0 +1,347 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions for role-based access control
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function hasRole(role) {
+      return isAuthenticated() && getUserData().role == role;
+    }
+    
+    function isParent() {
+      return hasRole('parent');
+    }
+    
+    function isDriver() {
+      return hasRole('driver');
+    }
+    
+    function isSchoolAdmin() {
+      return hasRole('schoolAdmin');
+    }
+    
+    function isSuperAdmin() {
+      return hasRole('superAdmin');
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function belongsToSameSchool(schoolId) {
+      return isAuthenticated() && getUserData().schoolId == schoolId;
+    }
+    
+    function isActiveUser() {
+      return isAuthenticated() && getUserData().isActive == true;
+    }
+    
+    function isVerifiedUser() {
+      return isAuthenticated() && getUserData().isVerified == true;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isSchoolAdmin() || isSuperAdmin();
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow update: if isOwner(userId) || 
+                      (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) ||
+                      isSuperAdmin();
+      allow delete: if isSuperAdmin();
+    }
+    
+    // Children collection
+    match /children/{childId} {
+      allow read: if isAuthenticated() && (
+        // Parent can read their own children
+        (isParent() && resource.data.parentId == request.auth.uid) ||
+        // Driver can read children on their bus
+        (isDriver() && resource.data.busId in getUserData().assignedBuses) ||
+        // School admin can read children in their school
+        (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) ||
+        // Super admin can read all
+        isSuperAdmin()
+      );
+      
+      allow create: if isAuthenticated() && (
+        // Parent can create children for themselves
+        (isParent() && request.resource.data.parentId == request.auth.uid) ||
+        // School admin can create children in their school
+        (isSchoolAdmin() && belongsToSameSchool(request.resource.data.schoolId)) ||
+        // Super admin can create all
+        isSuperAdmin()
+      );
+      
+      allow update: if isAuthenticated() && (
+        // Parent can update their own children (limited fields)
+        (isParent() && resource.data.parentId == request.auth.uid && 
+         onlyUpdatingFields(['name', 'medicalInfo', 'emergencyContact', 'emergencyContactPhone'])) ||
+        // School admin can update children in their school
+        (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) ||
+        // Super admin can update all
+        isSuperAdmin()
+      );
+      
+      allow delete: if isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId) || isSuperAdmin();
+      
+      function onlyUpdatingFields(allowedFields) {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowedFields);
+      }
+    }
+    
+    // Buses collection
+    match /buses/{busId} {
+      allow read: if isAuthenticated() && (
+        // Driver can read their assigned buses
+        (isDriver() && resource.data.driverId == request.auth.uid) ||
+        // School admin can read buses in their school
+        (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) ||
+        // Super admin can read all
+        isSuperAdmin()
+      );
+      
+      allow create: if (isSchoolAdmin() && belongsToSameSchool(request.resource.data.schoolId)) || 
+                      isSuperAdmin();
+      
+      allow update: if isAuthenticated() && (
+        // Driver can update location and status of their assigned bus
+        (isDriver() && resource.data.driverId == request.auth.uid && 
+         onlyUpdatingLocationAndStatus()) ||
+        // School admin can update buses in their school
+        (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) ||
+        // Super admin can update all
+        isSuperAdmin()
+      );
+      
+      allow delete: if (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) || 
+                      isSuperAdmin();
+      
+      function onlyUpdatingLocationAndStatus() {
+        return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['currentLatitude', 'currentLongitude', 'lastLocationUpdate', 'status', 'updatedAt']);
+      }
+    }
+    
+    // Routes collection
+    match /routes/{routeId} {
+      allow read: if isAuthenticated() && (
+        // Driver can read routes for their assigned buses
+        (isDriver() && resource.data.busId in getUserData().assignedBuses) ||
+        // Parent can read routes their children are assigned to
+        (isParent() && childrenOnRoute(resource.data.id)) ||
+        // School admin can read routes in their school
+        (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) ||
+        // Super admin can read all
+        isSuperAdmin()
+      );
+      
+      allow create: if (isSchoolAdmin() && belongsToSameSchool(request.resource.data.schoolId)) || 
+                      isSuperAdmin();
+      
+      allow update: if (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) || 
+                      isSuperAdmin();
+      
+      allow delete: if (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) || 
+                      isSuperAdmin();
+      
+      function childrenOnRoute(routeId) {
+        return exists(/databases/$(database)/documents/children/$(request.auth.uid + '_child')) &&
+               get(/databases/$(database)/documents/children/$(request.auth.uid + '_child')).data.routeId == routeId;
+      }
+    }
+    
+    // Trips collection (for tracking active trips)
+    match /trips/{tripId} {
+      allow read: if isAuthenticated() && (
+        // Driver can read their trips
+        (isDriver() && resource.data.driverId == request.auth.uid) ||
+        // Parent can read trips involving their children
+        (isParent() && parentHasChildOnTrip(resource.data.childrenIds)) ||
+        // School admin can read trips in their school
+        (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) ||
+        // Super admin can read all
+        isSuperAdmin()
+      );
+      
+      allow create: if isDriver() && request.resource.data.driverId == request.auth.uid;
+      
+      allow update: if isAuthenticated() && (
+        // Driver can update their trips
+        (isDriver() && resource.data.driverId == request.auth.uid) ||
+        // School admin can update trips in their school
+        (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) ||
+        // Super admin can update all
+        isSuperAdmin()
+      );
+      
+      allow delete: if (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) || 
+                      isSuperAdmin();
+      
+      function parentHasChildOnTrip(childrenIds) {
+        return getUserData().children.hasAny(childrenIds);
+      }
+    }
+    
+    // Check-ins collection
+    match /checkins/{checkinId} {
+      allow read: if isAuthenticated() && (
+        // Driver can read check-ins they created
+        (isDriver() && resource.data.driverId == request.auth.uid) ||
+        // Parent can read check-ins for their children
+        (isParent() && resource.data.childId in getUserData().children) ||
+        // School admin can read check-ins in their school
+        (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) ||
+        // Super admin can read all
+        isSuperAdmin()
+      );
+      
+      allow create: if isDriver() && request.resource.data.driverId == request.auth.uid;
+      
+      allow update: if isAuthenticated() && (
+        // Driver can update their check-ins (within time limit)
+        (isDriver() && resource.data.driverId == request.auth.uid && 
+         withinTimeLimit(resource.data.timestamp)) ||
+        // School admin can update check-ins in their school
+        (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) ||
+        // Super admin can update all
+        isSuperAdmin()
+      );
+      
+      allow delete: if (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) || 
+                      isSuperAdmin();
+      
+      function withinTimeLimit(timestamp) {
+        return request.time.toMillis() - timestamp.toMillis() < 3600000; // 1 hour
+      }
+    }
+    
+    // Payments collection
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated() && (
+        // User can read their own payments
+        isOwner(resource.data.userId) ||
+        // School admin can read payments for their school
+        (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) ||
+        // Super admin can read all
+        isSuperAdmin()
+      );
+      
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      
+      allow update: if isAuthenticated() && (
+        // User can update their own payments (limited fields)
+        (isOwner(resource.data.userId) && onlyUpdatingUserFields()) ||
+        // School admin can update payments for their school
+        (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) ||
+        // Super admin can update all
+        isSuperAdmin()
+      );
+      
+      allow delete: if isSuperAdmin();
+      
+      function onlyUpdatingUserFields() {
+        return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['metadata', 'updatedAt']);
+      }
+    }
+    
+    // Notifications collection
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && (
+        // User can read their own notifications
+        isOwner(resource.data.userId) ||
+        // School admin can read notifications for their school
+        (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) ||
+        // Super admin can read all
+        isSuperAdmin()
+      );
+      
+      allow create: if isAuthenticated() && (
+        isSchoolAdmin() || isSuperAdmin() || isDriver()
+      );
+      
+      allow update: if isAuthenticated() && (
+        // User can mark their own notifications as read
+        (isOwner(resource.data.userId) && onlyMarkingAsRead()) ||
+        // School admin can update notifications for their school
+        (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) ||
+        // Super admin can update all
+        isSuperAdmin()
+      );
+      
+      allow delete: if isOwner(resource.data.userId) || 
+                      (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) || 
+                      isSuperAdmin();
+      
+      function onlyMarkingAsRead() {
+        return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['isRead', 'readAt', 'updatedAt']);
+      }
+    }
+    
+    // Schools collection (for super admin management)
+    match /schools/{schoolId} {
+      allow read: if isAuthenticated() && (
+        belongsToSameSchool(schoolId) || isSuperAdmin()
+      );
+      
+      allow create: if isSuperAdmin();
+      
+      allow update: if isAuthenticated() && (
+        (isSchoolAdmin() && belongsToSameSchool(schoolId)) || isSuperAdmin()
+      );
+      
+      allow delete: if isSuperAdmin();
+    }
+    
+    // Incidents collection
+    match /incidents/{incidentId} {
+      allow read: if isAuthenticated() && (
+        // Driver can read incidents they reported
+        (isDriver() && resource.data.reportedBy == request.auth.uid) ||
+        // School admin can read incidents in their school
+        (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) ||
+        // Super admin can read all
+        isSuperAdmin()
+      );
+      
+      allow create: if isAuthenticated() && (isDriver() || isSchoolAdmin() || isSuperAdmin());
+      
+      allow update: if isAuthenticated() && (
+        // Driver can update incidents they reported (limited fields)
+        (isDriver() && resource.data.reportedBy == request.auth.uid && 
+         onlyUpdatingDriverFields()) ||
+        // School admin can update incidents in their school
+        (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) ||
+        // Super admin can update all
+        isSuperAdmin()
+      );
+      
+      allow delete: if (isSchoolAdmin() && belongsToSameSchool(resource.data.schoolId)) || 
+                      isSuperAdmin();
+      
+      function onlyUpdatingDriverFields() {
+        return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['description', 'severity', 'status', 'updatedAt']);
+      }
+    }
+    
+    // Analytics collection (read-only for most users)
+    match /analytics/{document=**} {
+      allow read: if isSchoolAdmin() || isSuperAdmin();
+      allow write: if isSuperAdmin();
+    }
+    
+    // System logs (super admin only)
+    match /logs/{document=**} {
+      allow read, write: if isSuperAdmin();
+    }
+  }
+}

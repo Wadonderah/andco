@@ -1,0 +1,267 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function getUserData() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function hasRole(role) {
+      return isAuthenticated() && getUserData().role == role;
+    }
+    
+    function isParent() {
+      return hasRole('parent');
+    }
+    
+    function isDriver() {
+      return hasRole('driver');
+    }
+    
+    function isSchoolAdmin() {
+      return hasRole('schoolAdmin');
+    }
+    
+    function isSuperAdmin() {
+      return hasRole('superAdmin');
+    }
+    
+    function belongsToSameSchool(schoolId) {
+      return isAuthenticated() && getUserData().schoolId == schoolId;
+    }
+    
+    function isValidImageFile() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    function isValidDocumentFile() {
+      return request.resource.contentType.matches('application/pdf') ||
+             request.resource.contentType.matches('application/msword') ||
+             request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.*') ||
+             request.resource.contentType.matches('text/plain');
+    }
+    
+    function isValidVideoFile() {
+      return request.resource.contentType.matches('video/.*');
+    }
+    
+    function isValidAudioFile() {
+      return request.resource.contentType.matches('audio/.*');
+    }
+    
+    function isValidFileSize(maxSizeInMB) {
+      return request.resource.size <= maxSizeInMB * 1024 * 1024;
+    }
+    
+    // Profile pictures
+    match /profile_pictures/{fileName} {
+      allow read: if isAuthenticated();
+      
+      allow write: if isAuthenticated() && 
+                     isValidImageFile() && 
+                     isValidFileSize(5) && // 5MB limit
+                     (fileName.matches('profile_' + request.auth.uid + '_.*') || 
+                      isSchoolAdmin() || 
+                      isSuperAdmin());
+      
+      allow delete: if isAuthenticated() && 
+                      (fileName.matches('profile_' + request.auth.uid + '_.*') || 
+                       isSchoolAdmin() || 
+                       isSuperAdmin());
+    }
+    
+    // Child photos
+    match /child_photos/{fileName} {
+      allow read: if isAuthenticated() && (
+        // Parent can read their children's photos
+        isParent() ||
+        // Driver can read photos of children on their bus
+        isDriver() ||
+        // School admin can read all child photos in their school
+        isSchoolAdmin() ||
+        // Super admin can read all
+        isSuperAdmin()
+      );
+      
+      allow write: if isAuthenticated() && 
+                     isValidImageFile() && 
+                     isValidFileSize(5) && // 5MB limit
+                     (isParent() || isSchoolAdmin() || isSuperAdmin());
+      
+      allow delete: if isAuthenticated() && 
+                      (isParent() || isSchoolAdmin() || isSuperAdmin());
+    }
+    
+    // Documents (licenses, permits, etc.)
+    match /documents/{fileName} {
+      allow read: if isAuthenticated() && (
+        // User can read their own documents
+        fileName.matches('.*_' + request.auth.uid + '_.*') ||
+        // School admin can read documents in their school
+        isSchoolAdmin() ||
+        // Super admin can read all
+        isSuperAdmin()
+      );
+      
+      allow write: if isAuthenticated() && 
+                     isValidDocumentFile() && 
+                     isValidFileSize(10) && // 10MB limit
+                     (fileName.matches('.*_' + request.auth.uid + '_.*') || 
+                      isSchoolAdmin() || 
+                      isSuperAdmin());
+      
+      allow delete: if isAuthenticated() && 
+                      (fileName.matches('.*_' + request.auth.uid + '_.*') || 
+                       isSchoolAdmin() || 
+                       isSuperAdmin());
+    }
+    
+    // Bus images
+    match /bus_images/{fileName} {
+      allow read: if isAuthenticated() && (
+        // Driver can read images of their assigned buses
+        isDriver() ||
+        // School admin can read bus images in their school
+        isSchoolAdmin() ||
+        // Super admin can read all
+        isSuperAdmin()
+      );
+      
+      allow write: if isAuthenticated() && 
+                     isValidImageFile() && 
+                     isValidFileSize(10) && // 10MB limit
+                     (isDriver() || isSchoolAdmin() || isSuperAdmin());
+      
+      allow delete: if isAuthenticated() && 
+                      (isSchoolAdmin() || isSuperAdmin());
+    }
+    
+    // Incident media (photos/videos of incidents)
+    match /incident_media/{fileName} {
+      allow read: if isAuthenticated() && (
+        // Driver can read media they uploaded
+        isDriver() ||
+        // School admin can read incident media in their school
+        isSchoolAdmin() ||
+        // Super admin can read all
+        isSuperAdmin()
+      );
+      
+      allow write: if isAuthenticated() && 
+                     (isValidImageFile() || isValidVideoFile()) && 
+                     isValidFileSize(50) && // 50MB limit for videos
+                     (isDriver() || isSchoolAdmin() || isSuperAdmin());
+      
+      allow delete: if isAuthenticated() && 
+                      (isSchoolAdmin() || isSuperAdmin());
+    }
+    
+    // Report files (generated reports)
+    match /reports/{schoolId}/{fileName} {
+      allow read: if isAuthenticated() && (
+        // School admin can read reports for their school
+        (isSchoolAdmin() && belongsToSameSchool(schoolId)) ||
+        // Super admin can read all reports
+        isSuperAdmin()
+      );
+      
+      allow write: if isAuthenticated() && 
+                     isValidDocumentFile() && 
+                     isValidFileSize(20) && // 20MB limit
+                     ((isSchoolAdmin() && belongsToSameSchool(schoolId)) || 
+                      isSuperAdmin());
+      
+      allow delete: if isAuthenticated() && 
+                      ((isSchoolAdmin() && belongsToSameSchool(schoolId)) || 
+                       isSuperAdmin());
+    }
+    
+    // Backup files (super admin only)
+    match /backups/{fileName} {
+      allow read, write, delete: if isSuperAdmin();
+    }
+    
+    // Temporary files (24-hour expiry)
+    match /temp/{userId}/{fileName} {
+      allow read, write: if isAuthenticated() && isOwner(userId);
+      allow delete: if isAuthenticated() && 
+                      (isOwner(userId) || isSchoolAdmin() || isSuperAdmin());
+    }
+    
+    // System files (super admin only)
+    match /system/{fileName} {
+      allow read, write, delete: if isSuperAdmin();
+    }
+    
+    // School logos and branding
+    match /school_assets/{schoolId}/{fileName} {
+      allow read: if isAuthenticated();
+      
+      allow write: if isAuthenticated() && 
+                     isValidImageFile() && 
+                     isValidFileSize(5) && // 5MB limit
+                     ((isSchoolAdmin() && belongsToSameSchool(schoolId)) || 
+                      isSuperAdmin());
+      
+      allow delete: if isAuthenticated() && 
+                      ((isSchoolAdmin() && belongsToSameSchool(schoolId)) || 
+                       isSuperAdmin());
+    }
+    
+    // App assets (public read, admin write)
+    match /app_assets/{fileName} {
+      allow read: if true; // Public read for app assets
+      allow write, delete: if isSuperAdmin();
+    }
+    
+    // User exports (CSV, PDF exports)
+    match /exports/{userId}/{fileName} {
+      allow read: if isAuthenticated() && 
+                    (isOwner(userId) || isSchoolAdmin() || isSuperAdmin());
+      
+      allow write: if isAuthenticated() && 
+                     isValidDocumentFile() && 
+                     isValidFileSize(50) && // 50MB limit
+                     (isOwner(userId) || isSchoolAdmin() || isSuperAdmin());
+      
+      allow delete: if isAuthenticated() && 
+                      (isOwner(userId) || isSchoolAdmin() || isSuperAdmin());
+    }
+    
+    // Analytics files
+    match /analytics/{schoolId}/{fileName} {
+      allow read: if isAuthenticated() && 
+                    ((isSchoolAdmin() && belongsToSameSchool(schoolId)) || 
+                     isSuperAdmin());
+      
+      allow write: if isAuthenticated() && 
+                     isValidDocumentFile() && 
+                     isValidFileSize(100) && // 100MB limit for analytics
+                     ((isSchoolAdmin() && belongsToSameSchool(schoolId)) || 
+                      isSuperAdmin());
+      
+      allow delete: if isAuthenticated() && 
+                      ((isSchoolAdmin() && belongsToSameSchool(schoolId)) || 
+                       isSuperAdmin());
+    }
+    
+    // Logs (super admin only)
+    match /logs/{fileName} {
+      allow read, write, delete: if isSuperAdmin();
+    }
+    
+    // Default deny rule for any other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

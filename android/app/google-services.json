@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "20561310459",
+    "project_id": "andco-9cdaa",
+    "storage_bucket": "andco-9cdaa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:20561310459:android:c28cb8dd77aba653eff65e",
+        "android_client_info": {
+          "package_name": "com.example.andco"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAXXHaTD-AXT8JbPMpdNWEiAbyiqoIgZrA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
