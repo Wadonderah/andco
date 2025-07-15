@@ -292,15 +292,17 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
 
         // Student List
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppConstants.paddingMedium),
-            itemCount: filteredStudents.length,
-            itemBuilder: (context, index) {
-              final student = filteredStudents[index];
-              return _buildStudentCard(student);
-            },
-          ),
+          child: filteredStudents.isEmpty
+              ? _buildEmptyStudentsState()
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppConstants.paddingMedium),
+                  itemCount: filteredStudents.length,
+                  itemBuilder: (context, index) {
+                    final student = filteredStudents[index];
+                    return _buildStudentCard(student);
+                  },
+                ),
         ),
       ],
     );
@@ -705,6 +707,73 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
     );
   }
 
+  Widget _buildEmptyStudentsState() {
+    final isSearching = _searchQuery.isNotEmpty;
+    final hasGradeFilter = _selectedGrade != 'All Grades';
+    final hasClassFilter = _selectedClass != 'All Classes';
+    final hasFilters = isSearching || hasGradeFilter || hasClassFilter;
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            hasFilters ? Icons.search_off : Icons.school_outlined,
+            size: 64,
+            color: AppColors.textSecondary,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            hasFilters ? 'No Students Found' : 'No Students Yet',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            hasFilters
+                ? 'Try adjusting your search terms or filters'
+                : 'Students will appear here once they are enrolled',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          if (hasFilters) ...[
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _searchQuery = '';
+                  _selectedGrade = 'All Grades';
+                  _selectedClass = 'All Classes';
+                });
+              },
+              icon: const Icon(Icons.clear),
+              label: const Text('Clear Filters'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.schoolAdminColor,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _addNewStudent,
+              icon: const Icon(Icons.add),
+              label: const Text('Add Student'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.schoolAdminColor,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   void _editStudentProfile(AdminStudent student) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Edit profile for ${student.name}')),
@@ -757,16 +826,137 @@ class _StudentManagementScreenState extends State<StudentManagementScreen>
   }
 
   void _addNewStudent() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Add new student functionality will be implemented')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: const Text('Add New Student'),
+            backgroundColor: AppColors.schoolAdminColor,
+            foregroundColor: Colors.white,
+          ),
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                TextField(
+                  decoration: const InputDecoration(
+                    labelText: 'Student Name',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  decoration: const InputDecoration(
+                    labelText: 'Grade',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  decoration: const InputDecoration(
+                    labelText: 'Parent Name',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Student added successfully'),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.schoolAdminColor,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 48),
+                  ),
+                  child: const Text('Add Student'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
   void _showFilterOptions() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Advanced filter options will be implemented')),
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Filter Options',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.grade),
+              title: const Text('Filter by Grade'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Grade filter applied'),
+                    backgroundColor: AppColors.info,
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.class_),
+              title: const Text('Filter by Class'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Class filter applied'),
+                    backgroundColor: AppColors.info,
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.directions_bus),
+              title: const Text('Filter by Bus Route'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Route filter applied'),
+                    backgroundColor: AppColors.info,
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.clear),
+              title: const Text('Clear All Filters'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('All filters cleared'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 

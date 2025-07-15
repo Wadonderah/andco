@@ -9,7 +9,8 @@ class NotificationRepository extends BaseRepository<NotificationModel> {
   String get collectionName => 'notifications';
 
   @override
-  NotificationModel fromMap(Map<String, dynamic> map) => NotificationModel.fromMap(map);
+  NotificationModel fromMap(Map<String, dynamic> map) =>
+      NotificationModel.fromMap(map);
 
   @override
   Map<String, dynamic> toMap(NotificationModel model) => model.toMap();
@@ -25,37 +26,44 @@ class NotificationRepository extends BaseRepository<NotificationModel> {
   }
 
   /// Get notifications for a specific school
-  Future<List<NotificationModel>> getNotificationsForSchool(String schoolId) async {
+  Future<List<NotificationModel>> getNotificationsForSchool(
+      String schoolId) async {
     return getWhere('schoolId', schoolId);
   }
 
   /// Get notifications stream for a specific school
-  Stream<List<NotificationModel>> getNotificationsStreamForSchool(String schoolId) {
+  Stream<List<NotificationModel>> getNotificationsStreamForSchool(
+      String schoolId) {
     return getStreamWhere('schoolId', schoolId);
   }
 
   /// Get notifications by type
-  Future<List<NotificationModel>> getNotificationsByType(NotificationType type) async {
+  Future<List<NotificationModel>> getNotificationsByType(
+      NotificationType type) async {
     return getWhere('type', type.toString().split('.').last);
   }
 
   /// Get notifications stream by type
-  Stream<List<NotificationModel>> getNotificationsStreamByType(NotificationType type) {
+  Stream<List<NotificationModel>> getNotificationsStreamByType(
+      NotificationType type) {
     return getStreamWhere('type', type.toString().split('.').last);
   }
 
   /// Get notifications by priority
-  Future<List<NotificationModel>> getNotificationsByPriority(NotificationPriority priority) async {
+  Future<List<NotificationModel>> getNotificationsByPriority(
+      NotificationPriority priority) async {
     return getWhere('priority', priority.toString().split('.').last);
   }
 
   /// Get notifications stream by priority
-  Stream<List<NotificationModel>> getNotificationsStreamByPriority(NotificationPriority priority) {
+  Stream<List<NotificationModel>> getNotificationsStreamByPriority(
+      NotificationPriority priority) {
     return getStreamWhere('priority', priority.toString().split('.').last);
   }
 
   /// Get unread notifications for user
-  Future<List<NotificationModel>> getUnreadNotificationsForUser(String userId) async {
+  Future<List<NotificationModel>> getUnreadNotificationsForUser(
+      String userId) async {
     try {
       final querySnapshot = await collection
           .where('userId', isEqualTo: userId)
@@ -69,12 +77,15 @@ class NotificationRepository extends BaseRepository<NotificationModel> {
     } catch (e) {
       // Fallback to client-side filtering
       final userNotifications = await getNotificationsForUser(userId);
-      return userNotifications.where((notification) => !notification.isRead).toList();
+      return userNotifications
+          .where((notification) => !notification.isRead)
+          .toList();
     }
   }
 
   /// Get unread notifications stream for user
-  Stream<List<NotificationModel>> getUnreadNotificationsStreamForUser(String userId) {
+  Stream<List<NotificationModel>> getUnreadNotificationsStreamForUser(
+      String userId) {
     try {
       return collection
           .where('userId', isEqualTo: userId)
@@ -86,13 +97,14 @@ class NotificationRepository extends BaseRepository<NotificationModel> {
               .toList());
     } catch (e) {
       // Fallback to filtering user notifications stream
-      return getNotificationsStreamForUser(userId)
-          .map((notifications) => notifications.where((n) => !n.isRead).toList());
+      return getNotificationsStreamForUser(userId).map(
+          (notifications) => notifications.where((n) => !n.isRead).toList());
     }
   }
 
   /// Get read notifications for user
-  Future<List<NotificationModel>> getReadNotificationsForUser(String userId) async {
+  Future<List<NotificationModel>> getReadNotificationsForUser(
+      String userId) async {
     try {
       final querySnapshot = await collection
           .where('userId', isEqualTo: userId)
@@ -106,17 +118,21 @@ class NotificationRepository extends BaseRepository<NotificationModel> {
     } catch (e) {
       // Fallback to client-side filtering
       final userNotifications = await getNotificationsForUser(userId);
-      return userNotifications.where((notification) => notification.isRead).toList();
+      return userNotifications
+          .where((notification) => notification.isRead)
+          .toList();
     }
   }
 
   /// Get recent notifications (last 30 days)
-  Future<List<NotificationModel>> getRecentNotifications({int days = 30}) async {
+  Future<List<NotificationModel>> getRecentNotifications(
+      {int days = 30}) async {
     final startDate = DateTime.now().subtract(Duration(days: days));
-    
+
     try {
       final querySnapshot = await collection
-          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where('createdAt',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
           .orderBy('createdAt', descending: true)
           .get();
 
@@ -138,11 +154,12 @@ class NotificationRepository extends BaseRepository<NotificationModel> {
     int days = 30,
   }) async {
     final startDate = DateTime.now().subtract(Duration(days: days));
-    
+
     try {
       final querySnapshot = await collection
           .where('userId', isEqualTo: userId)
-          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where('createdAt',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
           .orderBy('createdAt', descending: true)
           .get();
 
@@ -160,7 +177,7 @@ class NotificationRepository extends BaseRepository<NotificationModel> {
 
   /// Mark notification as read
   Future<void> markAsRead(String notificationId) async {
-    await updateById(notificationId, {
+    await update(notificationId, {
       'isRead': true,
       'readAt': DateTime.now().toIso8601String(),
       'updatedAt': DateTime.now().toIso8601String(),
@@ -171,7 +188,7 @@ class NotificationRepository extends BaseRepository<NotificationModel> {
   Future<void> markMultipleAsRead(List<String> notificationIds) async {
     final batch = FirebaseFirestore.instance.batch();
     final now = DateTime.now().toIso8601String();
-    
+
     for (final id in notificationIds) {
       batch.update(collection.doc(id), {
         'isRead': true,
@@ -179,7 +196,7 @@ class NotificationRepository extends BaseRepository<NotificationModel> {
         'updatedAt': now,
       });
     }
-    
+
     await batch.commit();
   }
 
@@ -187,7 +204,7 @@ class NotificationRepository extends BaseRepository<NotificationModel> {
   Future<void> markAllAsReadForUser(String userId) async {
     final unreadNotifications = await getUnreadNotificationsForUser(userId);
     final notificationIds = unreadNotifications.map((n) => n.id).toList();
-    
+
     if (notificationIds.isNotEmpty) {
       await markMultipleAsRead(notificationIds);
     }
@@ -196,7 +213,7 @@ class NotificationRepository extends BaseRepository<NotificationModel> {
   /// Delete expired notifications
   Future<void> deleteExpiredNotifications() async {
     final now = DateTime.now();
-    
+
     try {
       final querySnapshot = await collection
           .where('expiresAt', isLessThan: Timestamp.fromDate(now))
@@ -206,19 +223,19 @@ class NotificationRepository extends BaseRepository<NotificationModel> {
       for (final doc in querySnapshot.docs) {
         batch.delete(doc.reference);
       }
-      
+
       await batch.commit();
     } catch (e) {
       // Fallback to individual deletions
       final allNotifications = await getAll();
       final expiredNotifications = allNotifications
-          .where((notification) => 
-              notification.expiresAt != null && 
+          .where((notification) =>
+              notification.expiresAt != null &&
               notification.expiresAt!.isBefore(now))
           .toList();
-      
+
       for (final notification in expiredNotifications) {
-        await deleteById(notification.id);
+        await delete(notification.id);
       }
     }
   }
@@ -265,7 +282,8 @@ class NotificationRepository extends BaseRepository<NotificationModel> {
   ) async {
     try {
       final querySnapshot = await collection
-          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where('createdAt',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
           .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
           .orderBy('createdAt', descending: true)
           .get();
@@ -293,7 +311,8 @@ class NotificationRepository extends BaseRepository<NotificationModel> {
     try {
       final querySnapshot = await collection
           .where('userId', isEqualTo: userId)
-          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where('createdAt',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
           .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
           .orderBy('createdAt', descending: true)
           .get();
@@ -315,14 +334,20 @@ class NotificationRepository extends BaseRepository<NotificationModel> {
   /// Get notification statistics for user
   Future<Map<String, int>> getUserNotificationStatistics(String userId) async {
     final notifications = await getNotificationsForUser(userId);
-    
+
     return {
       'total': notifications.length,
       'unread': notifications.where((n) => !n.isRead).length,
       'read': notifications.where((n) => n.isRead).length,
-      'high_priority': notifications.where((n) => n.priority == NotificationPriority.high).length,
-      'normal_priority': notifications.where((n) => n.priority == NotificationPriority.normal).length,
-      'low_priority': notifications.where((n) => n.priority == NotificationPriority.low).length,
+      'high_priority': notifications
+          .where((n) => n.priority == NotificationPriority.high)
+          .length,
+      'normal_priority': notifications
+          .where((n) => n.priority == NotificationPriority.normal)
+          .length,
+      'low_priority': notifications
+          .where((n) => n.priority == NotificationPriority.low)
+          .length,
     };
   }
 
@@ -330,19 +355,19 @@ class NotificationRepository extends BaseRepository<NotificationModel> {
   Future<Map<String, int>> getNotificationStatisticsByType() async {
     final notifications = await getAll();
     final stats = <String, int>{};
-    
+
     for (final type in NotificationType.values) {
       final typeNotifications = notifications.where((n) => n.type == type);
       stats[type.toString().split('.').last] = typeNotifications.length;
     }
-    
+
     return stats;
   }
 
   /// Clean up old notifications (older than specified days)
   Future<void> cleanupOldNotifications({int days = 90}) async {
     final cutoffDate = DateTime.now().subtract(Duration(days: days));
-    
+
     try {
       final querySnapshot = await collection
           .where('createdAt', isLessThan: Timestamp.fromDate(cutoffDate))
@@ -352,7 +377,7 @@ class NotificationRepository extends BaseRepository<NotificationModel> {
       for (final doc in querySnapshot.docs) {
         batch.delete(doc.reference);
       }
-      
+
       await batch.commit();
     } catch (e) {
       // Fallback to individual deletions
@@ -360,9 +385,9 @@ class NotificationRepository extends BaseRepository<NotificationModel> {
       final oldNotifications = allNotifications
           .where((notification) => notification.createdAt.isBefore(cutoffDate))
           .toList();
-      
+
       for (final notification in oldNotifications) {
-        await deleteById(notification.id);
+        await delete(notification.id);
       }
     }
   }

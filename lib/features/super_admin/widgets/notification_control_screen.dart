@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 
@@ -6,74 +8,106 @@ class NotificationControlScreen extends StatefulWidget {
   const NotificationControlScreen({super.key});
 
   @override
-  State<NotificationControlScreen> createState() => _NotificationControlScreenState();
+  State<NotificationControlScreen> createState() =>
+      _NotificationControlScreenState();
 }
 
 class _NotificationControlScreenState extends State<NotificationControlScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
 
-  final List<NotificationTemplate> _templates = [
-    NotificationTemplate(
-      id: '1',
-      name: 'Bus Arrival Alert',
-      type: NotificationType.push,
-      category: 'Transportation',
-      title: 'Bus Arriving Soon',
-      message: 'Your child\'s bus will arrive in 5 minutes at {stop_name}',
-      isActive: true,
-      recipientCount: 1250,
-      lastSent: DateTime.now().subtract(const Duration(minutes: 30)),
-    ),
-    NotificationTemplate(
-      id: '2',
-      name: 'Route Delay Notice',
-      type: NotificationType.sms,
-      category: 'Transportation',
-      title: 'Route Delay',
-      message: 'Bus route {route_name} is delayed by {delay_minutes} minutes due to traffic',
-      isActive: true,
-      recipientCount: 450,
-      lastSent: DateTime.now().subtract(const Duration(hours: 2)),
-    ),
-    NotificationTemplate(
-      id: '3',
-      name: 'Emergency Alert',
-      type: NotificationType.both,
-      category: 'Emergency',
-      title: 'Emergency Alert',
-      message: 'Emergency situation reported. Please check the app for updates.',
-      isActive: true,
-      recipientCount: 2847,
-      lastSent: DateTime.now().subtract(const Duration(days: 5)),
-    ),
-  ];
+  // Real notification templates will be loaded from Firebase
+  List<NotificationTemplate> _templates = [];
 
-  final List<NotificationCampaign> _campaigns = [
-    NotificationCampaign(
-      id: '1',
-      name: 'Back to School Reminder',
-      status: CampaignStatus.scheduled,
-      scheduledDate: DateTime.now().add(const Duration(days: 2)),
-      targetAudience: 'All Parents',
-      estimatedReach: 1500,
-      template: 'Welcome back! School starts on Monday.',
-    ),
-    NotificationCampaign(
-      id: '2',
-      name: 'System Maintenance Notice',
-      status: CampaignStatus.sent,
-      scheduledDate: DateTime.now().subtract(const Duration(days: 1)),
-      targetAudience: 'All Users',
-      estimatedReach: 2847,
-      template: 'System maintenance scheduled for tonight 11 PM - 2 AM.',
-    ),
-  ];
+  // Real notification campaigns will be loaded from Firebase
+  List<NotificationCampaign> _campaigns = [];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _loadNotificationData();
+  }
+
+  Future<void> _loadNotificationData() async {
+    try {
+      // Load notification templates from Firebase
+      final templatesSnapshot = await FirebaseFirestore.instance
+          .collection('notification_templates')
+          .get();
+
+      setState(() {
+        _templates = templatesSnapshot.docs.map((doc) {
+          final data = doc.data();
+          return NotificationTemplate(
+            id: doc.id,
+            name: data['name'] ?? 'Unnamed Template',
+            type: _parseNotificationType(data['type']),
+            category: data['category'] ?? 'General',
+            title: data['title'] ?? '',
+            message: data['message'] ?? '',
+            isActive: data['isActive'] ?? false,
+            recipientCount: data['recipientCount'] ?? 0,
+            lastSent: data['lastSent'] != null
+                ? (data['lastSent'] as Timestamp).toDate()
+                : DateTime.now(),
+          );
+        }).toList();
+      });
+
+      // Load notification campaigns from Firebase
+      final campaignsSnapshot = await FirebaseFirestore.instance
+          .collection('notification_campaigns')
+          .get();
+
+      setState(() {
+        _campaigns = campaignsSnapshot.docs.map((doc) {
+          final data = doc.data();
+          return NotificationCampaign(
+            id: doc.id,
+            name: data['name'] ?? 'Unnamed Campaign',
+            status: _parseCampaignStatus(data['status']),
+            scheduledDate: data['scheduledDate'] != null
+                ? (data['scheduledDate'] as Timestamp).toDate()
+                : DateTime.now(),
+            targetAudience: data['targetAudience'] ?? 'All Users',
+            estimatedReach: data['estimatedReach'] ?? 0,
+            template: data['template'] ?? '',
+          );
+        }).toList();
+      });
+    } catch (e) {
+      debugPrint('Failed to load notification data: $e');
+      // Keep empty lists if loading fails
+    }
+  }
+
+  NotificationType _parseNotificationType(String? type) {
+    switch (type) {
+      case 'push':
+        return NotificationType.push;
+      case 'sms':
+        return NotificationType.sms;
+      case 'both':
+        return NotificationType.both;
+      default:
+        return NotificationType.push;
+    }
+  }
+
+  CampaignStatus _parseCampaignStatus(String? status) {
+    switch (status) {
+      case 'draft':
+        return CampaignStatus.draft;
+      case 'scheduled':
+        return CampaignStatus.scheduled;
+      case 'sent':
+        return CampaignStatus.sent;
+      case 'cancelled':
+        return CampaignStatus.cancelled;
+      default:
+        return CampaignStatus.draft;
+    }
   }
 
   @override
@@ -120,23 +154,29 @@ class _NotificationControlScreenState extends State<NotificationControlScreen>
                   ],
                 ),
                 const SizedBox(height: AppConstants.paddingMedium),
-                
+
                 // Notification Stats
                 Row(
                   children: [
-                    _buildStatCard('Total Templates', _templates.length.toString(), AppColors.pink),
+                    _buildStatCard('Total Templates',
+                        _templates.length.toString(), AppColors.pink),
                     const SizedBox(width: AppConstants.paddingMedium),
-                    _buildStatCard('Active Templates', _getActiveTemplateCount().toString(), AppColors.success),
+                    _buildStatCard(
+                        'Active Templates',
+                        _getActiveTemplateCount().toString(),
+                        AppColors.success),
                     const SizedBox(width: AppConstants.paddingMedium),
-                    _buildStatCard('Sent Today', _getSentTodayCount().toString(), AppColors.info),
+                    _buildStatCard('Sent Today',
+                        _getSentTodayCount().toString(), AppColors.info),
                     const SizedBox(width: AppConstants.paddingMedium),
-                    _buildStatCard('Total Recipients', _getTotalRecipients().toString(), AppColors.warning),
+                    _buildStatCard('Total Recipients',
+                        _getTotalRecipients().toString(), AppColors.warning),
                   ],
                 ),
               ],
             ),
           ),
-          
+
           // Tabs
           Container(
             color: Colors.white,
@@ -152,7 +192,7 @@ class _NotificationControlScreenState extends State<NotificationControlScreen>
               ],
             ),
           ),
-          
+
           // Content
           Expanded(
             child: TabBarView(
@@ -212,7 +252,6 @@ class _NotificationControlScreenState extends State<NotificationControlScreen>
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: AppConstants.paddingLarge),
-          
           Expanded(
             child: ListView.builder(
               itemCount: _templates.length,
@@ -241,7 +280,8 @@ class _NotificationControlScreenState extends State<NotificationControlScreen>
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: _getTypeColor(template.type).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
+                    borderRadius:
+                        BorderRadius.circular(AppConstants.radiusSmall),
                   ),
                   child: Icon(
                     _getTypeIcon(template.type),
@@ -256,7 +296,8 @@ class _NotificationControlScreenState extends State<NotificationControlScreen>
                     children: [
                       Text(
                         template.name,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       Text(
                         template.category,
@@ -273,7 +314,6 @@ class _NotificationControlScreenState extends State<NotificationControlScreen>
               ],
             ),
             const SizedBox(height: AppConstants.paddingMedium),
-            
             Container(
               padding: const EdgeInsets.all(AppConstants.paddingMedium),
               decoration: BoxDecoration(
@@ -296,18 +336,18 @@ class _NotificationControlScreenState extends State<NotificationControlScreen>
               ),
             ),
             const SizedBox(height: AppConstants.paddingMedium),
-            
             Row(
               children: [
-                _buildTemplateMetric('Recipients', template.recipientCount.toString()),
+                _buildTemplateMetric(
+                    'Recipients', template.recipientCount.toString()),
                 const SizedBox(width: AppConstants.paddingLarge),
                 _buildTemplateMetric('Type', template.type.displayName),
                 const SizedBox(width: AppConstants.paddingLarge),
-                _buildTemplateMetric('Last Sent', _formatLastSent(template.lastSent)),
+                _buildTemplateMetric(
+                    'Last Sent', _formatLastSent(template.lastSent)),
               ],
             ),
             const SizedBox(height: AppConstants.paddingMedium),
-            
             Row(
               children: [
                 TextButton.icon(
@@ -368,12 +408,12 @@ class _NotificationControlScreenState extends State<NotificationControlScreen>
                 onPressed: _createCampaign,
                 icon: const Icon(Icons.campaign),
                 label: const Text('Create Campaign'),
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.info),
+                style:
+                    ElevatedButton.styleFrom(backgroundColor: AppColors.info),
               ),
             ],
           ),
           const SizedBox(height: AppConstants.paddingLarge),
-          
           Expanded(
             child: ListView.builder(
               itemCount: _campaigns.length,
@@ -401,8 +441,10 @@ class _NotificationControlScreenState extends State<NotificationControlScreen>
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _getCampaignStatusColor(campaign.status).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
+                    color: _getCampaignStatusColor(campaign.status)
+                        .withValues(alpha: 0.1),
+                    borderRadius:
+                        BorderRadius.circular(AppConstants.radiusSmall),
                   ),
                   child: Icon(
                     Icons.campaign,
@@ -417,7 +459,8 @@ class _NotificationControlScreenState extends State<NotificationControlScreen>
                     children: [
                       Text(
                         campaign.name,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       Text(
                         '${campaign.targetAudience} • ${campaign.estimatedReach} recipients',
@@ -427,10 +470,13 @@ class _NotificationControlScreenState extends State<NotificationControlScreen>
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _getCampaignStatusColor(campaign.status).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
+                    color: _getCampaignStatusColor(campaign.status)
+                        .withValues(alpha: 0.1),
+                    borderRadius:
+                        BorderRadius.circular(AppConstants.radiusSmall),
                   ),
                   child: Text(
                     campaign.status.displayName,
@@ -444,7 +490,6 @@ class _NotificationControlScreenState extends State<NotificationControlScreen>
               ],
             ),
             const SizedBox(height: AppConstants.paddingMedium),
-            
             Container(
               padding: const EdgeInsets.all(AppConstants.paddingMedium),
               decoration: BoxDecoration(
@@ -457,12 +502,13 @@ class _NotificationControlScreenState extends State<NotificationControlScreen>
               ),
             ),
             const SizedBox(height: AppConstants.paddingMedium),
-            
             Row(
               children: [
-                _buildCampaignMetric('Scheduled', _formatScheduledDate(campaign.scheduledDate)),
+                _buildCampaignMetric(
+                    'Scheduled', _formatScheduledDate(campaign.scheduledDate)),
                 const SizedBox(width: AppConstants.paddingLarge),
-                _buildCampaignMetric('Reach', campaign.estimatedReach.toString()),
+                _buildCampaignMetric(
+                    'Reach', campaign.estimatedReach.toString()),
                 const Spacer(),
                 if (campaign.status == CampaignStatus.scheduled) ...[
                   TextButton.icon(
@@ -474,7 +520,8 @@ class _NotificationControlScreenState extends State<NotificationControlScreen>
                     onPressed: () => _sendCampaign(campaign),
                     icon: const Icon(Icons.send),
                     label: const Text('Send Now'),
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.success),
                   ),
                 ],
               ],
@@ -521,15 +568,17 @@ class _NotificationControlScreenState extends State<NotificationControlScreen>
 
   int _getSentTodayCount() {
     final today = DateTime.now();
-    return _templates.where((template) => 
-      template.lastSent.day == today.day &&
-      template.lastSent.month == today.month &&
-      template.lastSent.year == today.year
-    ).length;
+    return _templates
+        .where((template) =>
+            template.lastSent.day == today.day &&
+            template.lastSent.month == today.month &&
+            template.lastSent.year == today.year)
+        .length;
   }
 
   int _getTotalRecipients() {
-    return _templates.fold<int>(0, (sum, template) => sum + template.recipientCount);
+    return _templates.fold<int>(
+        0, (sum, template) => sum + template.recipientCount);
   }
 
   Color _getTypeColor(NotificationType type) {
@@ -556,10 +605,14 @@ class _NotificationControlScreenState extends State<NotificationControlScreen>
 
   Color _getCampaignStatusColor(CampaignStatus status) {
     switch (status) {
+      case CampaignStatus.draft:
+        return AppColors.textSecondary;
       case CampaignStatus.scheduled:
         return AppColors.warning;
       case CampaignStatus.sent:
         return AppColors.success;
+      case CampaignStatus.cancelled:
+        return AppColors.error;
       case CampaignStatus.failed:
         return AppColors.error;
     }
@@ -568,7 +621,7 @@ class _NotificationControlScreenState extends State<NotificationControlScreen>
   String _formatLastSent(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
-    
+
     if (difference.inHours < 24) {
       return '${difference.inHours}h ago';
     } else {
@@ -586,7 +639,8 @@ class _NotificationControlScreenState extends State<NotificationControlScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Create Notification Template'),
-        content: const Text('Notification template creation form would be implemented here.'),
+        content: const Text(
+            'Notification template creation form would be implemented here.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -635,7 +689,8 @@ class _NotificationControlScreenState extends State<NotificationControlScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Send Notification'),
-        content: Text('Send "${template.name}" to ${template.recipientCount} recipients now?'),
+        content: Text(
+            'Send "${template.name}" to ${template.recipientCount} recipients now?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -689,7 +744,8 @@ class _NotificationControlScreenState extends State<NotificationControlScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Create Campaign'),
-        content: const Text('Campaign creation form would be implemented here.'),
+        content:
+            const Text('Campaign creation form would be implemented here.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -754,8 +810,10 @@ enum NotificationType {
 }
 
 enum CampaignStatus {
+  draft('Draft'),
   scheduled('Scheduled'),
   sent('Sent'),
+  cancelled('Cancelled'),
   failed('Failed');
 
   const CampaignStatus(this.displayName);

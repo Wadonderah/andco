@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../shared/models/user_model.dart';
 import 'base_repository.dart';
 
@@ -58,10 +60,8 @@ class UserRepository extends BaseRepository<UserModel> {
       final querySnapshot = await collection
           .where('isActive', isEqualTo: true)
           .orderBy('name')
-          .startAt([query])
-          .endAt([query + '\uf8ff'])
-          .get();
-      
+          .startAt([query]).endAt(['$query\uf8ff']).get();
+
       return querySnapshot.docs
           .map((doc) => fromMap(doc.data() as Map<String, dynamic>))
           .toList();
@@ -69,7 +69,8 @@ class UserRepository extends BaseRepository<UserModel> {
       // Fallback to client-side filtering if compound queries are not set up
       final allUsers = await getActiveUsers();
       return allUsers
-          .where((user) => user.name.toLowerCase().contains(query.toLowerCase()))
+          .where(
+              (user) => user.name.toLowerCase().contains(query.toLowerCase()))
           .toList();
     }
   }
@@ -80,10 +81,8 @@ class UserRepository extends BaseRepository<UserModel> {
       final querySnapshot = await collection
           .where('isActive', isEqualTo: true)
           .orderBy('email')
-          .startAt([query])
-          .endAt([query + '\uf8ff'])
-          .get();
-      
+          .startAt([query]).endAt(['$query\uf8ff']).get();
+
       return querySnapshot.docs
           .map((doc) => fromMap(doc.data() as Map<String, dynamic>))
           .toList();
@@ -91,19 +90,20 @@ class UserRepository extends BaseRepository<UserModel> {
       // Fallback to client-side filtering if compound queries are not set up
       final allUsers = await getActiveUsers();
       return allUsers
-          .where((user) => user.email.toLowerCase().contains(query.toLowerCase()))
+          .where(
+              (user) => user.email.toLowerCase().contains(query.toLowerCase()))
           .toList();
     }
   }
 
   /// Update user FCM token
   Future<void> updateFCMToken(String userId, String fcmToken) async {
-    await updateById(userId, {'fcmToken': fcmToken});
+    await update(userId, {'fcmToken': fcmToken});
   }
 
   /// Update user verification status
   Future<void> updateVerificationStatus(String userId, bool isVerified) async {
-    await updateById(userId, {
+    await update(userId, {
       'isVerified': isVerified,
       'updatedAt': DateTime.now().toIso8601String(),
     });
@@ -111,7 +111,7 @@ class UserRepository extends BaseRepository<UserModel> {
 
   /// Update user active status
   Future<void> updateActiveStatus(String userId, bool isActive) async {
-    await updateById(userId, {
+    await update(userId, {
       'isActive': isActive,
       'updatedAt': DateTime.now().toIso8601String(),
     });
@@ -119,7 +119,7 @@ class UserRepository extends BaseRepository<UserModel> {
 
   /// Update user role
   Future<void> updateUserRole(String userId, UserRole role) async {
-    await updateById(userId, {
+    await update(userId, {
       'role': role.toString().split('.').last,
       'updatedAt': DateTime.now().toIso8601String(),
     });
@@ -127,10 +127,29 @@ class UserRepository extends BaseRepository<UserModel> {
 
   /// Update user school
   Future<void> updateUserSchool(String userId, String? schoolId) async {
-    await updateById(userId, {
+    await update(userId, {
       'schoolId': schoolId,
       'updatedAt': DateTime.now().toIso8601String(),
     });
+  }
+
+  /// Get users by school and role
+  Future<List<UserModel>> getUsersBySchoolAndRole(
+      String schoolId, UserRole role) async {
+    try {
+      final querySnapshot = await collection
+          .where('schoolId', isEqualTo: schoolId)
+          .where('role', isEqualTo: role.toString().split('.').last)
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => fromMap(doc.data() as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint('❌ Error getting users by school and role: $e');
+      return [];
+    }
   }
 
   /// Get users with specific permissions
@@ -140,7 +159,7 @@ class UserRepository extends BaseRepository<UserModel> {
           .where('permissions', arrayContains: permission)
           .where('isActive', isEqualTo: true)
           .get();
-      
+
       return querySnapshot.docs
           .map((doc) => fromMap(doc.data() as Map<String, dynamic>))
           .toList();
@@ -155,7 +174,8 @@ class UserRepository extends BaseRepository<UserModel> {
 
   /// Get users by multiple roles
   Future<List<UserModel>> getUsersByRoles(List<UserRole> roles) async {
-    final roleStrings = roles.map((role) => role.toString().split('.').last).toList();
+    final roleStrings =
+        roles.map((role) => role.toString().split('.').last).toList();
     return getWhereIn('role', roleStrings);
   }
 
@@ -164,10 +184,11 @@ class UserRepository extends BaseRepository<UserModel> {
     try {
       final querySnapshot = await collection
           .where('schoolId', isEqualTo: schoolId)
-          .where('role', isEqualTo: UserRole.schoolAdmin.toString().split('.').last)
+          .where('role',
+              isEqualTo: UserRole.schoolAdmin.toString().split('.').last)
           .where('isActive', isEqualTo: true)
           .get();
-      
+
       return querySnapshot.docs
           .map((doc) => fromMap(doc.data() as Map<String, dynamic>))
           .toList();
@@ -188,7 +209,7 @@ class UserRepository extends BaseRepository<UserModel> {
           .where('role', isEqualTo: UserRole.driver.toString().split('.').last)
           .where('isActive', isEqualTo: true)
           .get();
-      
+
       return querySnapshot.docs
           .map((doc) => fromMap(doc.data() as Map<String, dynamic>))
           .toList();
@@ -209,7 +230,7 @@ class UserRepository extends BaseRepository<UserModel> {
           .where('role', isEqualTo: UserRole.parent.toString().split('.').last)
           .where('isActive', isEqualTo: true)
           .get();
-      
+
       return querySnapshot.docs
           .map((doc) => fromMap(doc.data() as Map<String, dynamic>))
           .toList();
@@ -242,15 +263,17 @@ class UserRepository extends BaseRepository<UserModel> {
   /// Get user statistics
   Future<Map<String, int>> getUserStatistics() async {
     final allUsers = await getAll();
-    
+
     return {
       'total': allUsers.length,
       'active': allUsers.where((user) => user.isActive).length,
       'verified': allUsers.where((user) => user.isVerified).length,
       'parents': allUsers.where((user) => user.role == UserRole.parent).length,
       'drivers': allUsers.where((user) => user.role == UserRole.driver).length,
-      'schoolAdmins': allUsers.where((user) => user.role == UserRole.schoolAdmin).length,
-      'superAdmins': allUsers.where((user) => user.role == UserRole.superAdmin).length,
+      'schoolAdmins':
+          allUsers.where((user) => user.role == UserRole.schoolAdmin).length,
+      'superAdmins':
+          allUsers.where((user) => user.role == UserRole.superAdmin).length,
     };
   }
 }

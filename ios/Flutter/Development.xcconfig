@@ -1,0 +1,43 @@
+#include "Generated.xcconfig"
+
+// Development Configuration for AndCo School Transport
+
+// App Configuration
+PRODUCT_BUNDLE_IDENTIFIER = com.andco.schooltransport.dev
+PRODUCT_NAME = AndCo Dev
+DISPLAY_NAME = AndCo Dev
+
+// Build Settings
+FLUTTER_BUILD_MODE = debug
+FLUTTER_TARGET = lib/main_dev.dart
+
+// Code Signing
+CODE_SIGN_IDENTITY = iPhone Developer
+DEVELOPMENT_TEAM = YOUR_DEVELOPMENT_TEAM_ID
+
+// Deployment
+IPHONEOS_DEPLOYMENT_TARGET = 12.0
+TARGETED_DEVICE_FAMILY = 1,2
+
+// API Keys and Configuration
+GOOGLE_MAPS_API_KEY = YOUR_DEV_GOOGLE_MAPS_API_KEY
+
+// Firebase Configuration
+FIREBASE_CONFIG_FILE = GoogleService-Info-Dev.plist
+
+// Build Optimizations
+ENABLE_BITCODE = NO
+SWIFT_OPTIMIZATION_LEVEL = -Onone
+GCC_OPTIMIZATION_LEVEL = 0
+
+// Debug Settings
+DEBUG_INFORMATION_FORMAT = dwarf-with-dsym
+ENABLE_TESTABILITY = YES
+
+// Preprocessor Macros
+GCC_PREPROCESSOR_DEFINITIONS = $(inherited) DEBUG=1 DEVELOPMENT=1
+
+// Other Settings
+CLANG_ENABLE_MODULES = YES
+SWIFT_VERSION = 5.0
+ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES

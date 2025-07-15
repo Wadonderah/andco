@@ -38,7 +38,7 @@ class _ParentAuthScreenState extends ConsumerState<ParentAuthScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -468,9 +468,30 @@ class _ParentAuthScreenState extends ConsumerState<ParentAuthScreen>
     if (value == null || value.isEmpty) {
       return 'Please enter your password';
     }
-    if (value.length < 6) {
-      return 'Password must be at least 6 characters';
+    if (value.length < 8) {
+      return 'Password must be at least 8 characters';
     }
+
+    // Check for at least one uppercase letter
+    if (!RegExp(r'[A-Z]').hasMatch(value)) {
+      return 'Password must contain at least one uppercase letter';
+    }
+
+    // Check for at least one lowercase letter
+    if (!RegExp(r'[a-z]').hasMatch(value)) {
+      return 'Password must contain at least one lowercase letter';
+    }
+
+    // Check for at least one number
+    if (!RegExp(r'[0-9]').hasMatch(value)) {
+      return 'Password must contain at least one number';
+    }
+
+    // Check for at least one special character
+    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(value)) {
+      return 'Password must contain at least one special character';
+    }
+
     return null;
   }
 
@@ -553,12 +574,35 @@ class _ParentAuthScreenState extends ConsumerState<ParentAuthScreen>
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Sign up failed: ${e.toString()}'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          final errorMessage = e.toString();
+
+          // Check if it's an email-already-in-use error
+          if (errorMessage.contains('email-already-in-use') ||
+              errorMessage.contains('account already exists')) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                    'An account already exists with this email. Try signing in instead.'),
+                backgroundColor: Colors.orange,
+                action: SnackBarAction(
+                  label: 'Sign In',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    // Switch to sign in tab
+                    _tabController.animateTo(0);
+                  },
+                ),
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Sign up failed: $errorMessage'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
       }
     }
@@ -588,10 +632,79 @@ class _ParentAuthScreenState extends ConsumerState<ParentAuthScreen>
   }
 
   void _forgotPassword() {
-    // TODO: Implement forgot password functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Forgot password functionality coming soon'),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset Password'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+                'Enter your email address to receive a password reset link.'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(
+                labelText: 'Email Address',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.email),
+              ),
+              keyboardType: TextInputType.emailAddress,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final email = _emailController.text.trim();
+              final navigator = Navigator.of(context);
+              final messenger = ScaffoldMessenger.of(context);
+
+              if (email.isEmpty) {
+                messenger.showSnackBar(
+                  const SnackBar(
+                      content: Text('Please enter your email address')),
+                );
+                return;
+              }
+
+              try {
+                await ref
+                    .read(authControllerProvider.notifier)
+                    .sendPasswordResetEmail(email);
+                if (mounted) {
+                  navigator.pop();
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('Password reset email sent successfully'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  navigator.pop();
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content:
+                          Text('Failed to send reset email: ${e.toString()}'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.parentColor,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Send Reset Email'),
+          ),
+        ],
       ),
     );
   }

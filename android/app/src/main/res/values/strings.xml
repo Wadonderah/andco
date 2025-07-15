@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App names for different flavors -->
+    <string name="app_name">AndCo School Transport</string>
+    
+    <!-- API Keys (these should be moved to a secure location in production) -->
+    <string name="google_maps_api_key">YOUR_GOOGLE_MAPS_API_KEY_HERE</string>
+    
+    <!-- Firebase configuration -->
+    <string name="default_notification_channel_id">andco_notifications</string>
+    <string name="default_notification_channel_name">AndCo Notifications</string>
+    
+    <!-- Deep link configuration -->
+    <string name="deep_link_scheme">andco</string>
+    <string name="deep_link_host">app</string>
+    
+    <!-- File provider authority -->
+    <string name="file_provider_authority">com.andco.schooltransport.fileprovider</string>
+    
+    <!-- Notification channels -->
+    <string name="notification_channel_general">General</string>
+    <string name="notification_channel_trips">Trip Updates</string>
+    <string name="notification_channel_payments">Payment Notifications</string>
+    <string name="notification_channel_emergency">Emergency Alerts</string>
+    
+    <!-- Permission rationales -->
+    <string name="location_permission_rationale">Location access is required to track bus routes and provide real-time updates.</string>
+    <string name="camera_permission_rationale">Camera access is needed for QR code scanning and profile photos.</string>
+    <string name="storage_permission_rationale">Storage access is required to save and share documents.</string>
+    <string name="phone_permission_rationale">Phone access is needed for emergency calling features.</string>
+    <string name="sms_permission_rationale">SMS permission is required to send important notifications.</string>
+    <string name="biometric_permission_rationale">Biometric authentication provides secure and convenient access to your account.</string>
+    
+    <!-- Error messages -->
+    <string name="error_network">Network connection error. Please check your internet connection.</string>
+    <string name="error_location">Unable to get location. Please enable location services.</string>
+    <string name="error_camera">Camera not available. Please check camera permissions.</string>
+    <string name="error_generic">An unexpected error occurred. Please try again.</string>
+    
+    <!-- Success messages -->
+    <string name="success_login">Login successful</string>
+    <string name="success_logout">Logged out successfully</string>
+    <string name="success_payment">Payment completed successfully</string>
+    <string name="success_checkin">Check-in successful</string>
+    
+    <!-- Loading messages -->
+    <string name="loading_login">Signing in...</string>
+    <string name="loading_payment">Processing payment...</string>
+    <string name="loading_location">Getting location...</string>
+    <string name="loading_data">Loading data...</string>
+    
+    <!-- Button labels -->
+    <string name="button_login">Login</string>
+    <string name="button_logout">Logout</string>
+    <string name="button_register">Register</string>
+    <string name="button_continue">Continue</string>
+    <string name="button_cancel">Cancel</string>
+    <string name="button_ok">OK</string>
+    <string name="button_retry">Retry</string>
+    <string name="button_settings">Settings</string>
+    
+    <!-- Navigation labels -->
+    <string name="nav_home">Home</string>
+    <string name="nav_trips">Trips</string>
+    <string name="nav_payments">Payments</string>
+    <string name="nav_profile">Profile</string>
+    <string name="nav_settings">Settings</string>
+    
+    <!-- Role-specific labels -->
+    <string name="role_parent">Parent</string>
+    <string name="role_driver">Driver</string>
+    <string name="role_school_admin">School Admin</string>
+    <string name="role_super_admin">Super Admin</string>
+</resources>

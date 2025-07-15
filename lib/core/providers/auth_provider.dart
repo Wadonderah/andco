@@ -182,6 +182,7 @@ class AuthController extends StateNotifier<AsyncValue<UserModel?>> {
     required Function(FirebaseAuthException) verificationFailed,
     required Function(String, int?) codeSent,
     required Function(String) codeAutoRetrievalTimeout,
+    int? forceResendingToken,
   }) async {
     try {
       await _comprehensiveAuthService.verifyPhoneNumber(
@@ -190,6 +191,7 @@ class AuthController extends StateNotifier<AsyncValue<UserModel?>> {
         onVerificationFailed: verificationFailed,
         onCodeSent: codeSent,
         onCodeAutoRetrievalTimeout: codeAutoRetrievalTimeout,
+        forceResendingToken: forceResendingToken,
       );
     } catch (e) {
       rethrow;

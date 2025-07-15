@@ -1,0 +1,309 @@
+name: Build and Deploy AndCo School Transport
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+env:
+  FLUTTER_VERSION: '3.16.0'
+  JAVA_VERSION: '11'
+  NODE_VERSION: '18'
+
+jobs:
+  # Code Quality and Testing
+  test:
+    name: Run Tests and Code Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        cache: true
+        
+    - name: Get dependencies
+      run: flutter pub get
+      
+    - name: Verify formatting
+      run: dart format --output=none --set-exit-if-changed .
+      
+    - name: Analyze project source
+      run: dart analyze --fatal-infos
+      
+    - name: Run tests
+      run: flutter test --coverage
+      
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: coverage/lcov.info
+        
+  # Android Build
+  build_android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name != 'pull_request'
+    
+    strategy:
+      matrix:
+        flavor: [dev, prod]
+        build_type: [debug, release]
+        exclude:
+          - flavor: prod
+            build_type: debug
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: ${{ env.JAVA_VERSION }}
+        
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        cache: true
+        
+    - name: Get dependencies
+      run: flutter pub get
+      
+    - name: Setup Android signing
+      if: matrix.build_type == 'release'
+      run: |
+        echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 --decode > android/app/keystore.jks
+        echo "storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> android/key.properties
+        echo "keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}" >> android/key.properties
+        echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" >> android/key.properties
+        echo "storeFile=keystore.jks" >> android/key.properties
+        
+    - name: Build Android APK
+      run: |
+        if [ "${{ matrix.build_type }}" == "release" ]; then
+          flutter build apk --release --flavor ${{ matrix.flavor }}
+        else
+          flutter build apk --debug --flavor ${{ matrix.flavor }}
+        fi
+        
+    - name: Build Android App Bundle
+      if: matrix.build_type == 'release'
+      run: flutter build appbundle --release --flavor ${{ matrix.flavor }}
+      
+    - name: Upload Android artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: android-${{ matrix.flavor }}-${{ matrix.build_type }}
+        path: |
+          build/app/outputs/flutter-apk/*.apk
+          build/app/outputs/bundle/*/*.aab
+        retention-days: 30
+
+  # iOS Build
+  build_ios:
+    name: Build iOS
+    runs-on: macos-latest
+    needs: test
+    if: github.event_name != 'pull_request'
+    
+    strategy:
+      matrix:
+        flavor: [dev, prod]
+        build_type: [debug, release]
+        exclude:
+          - flavor: prod
+            build_type: debug
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        cache: true
+        
+    - name: Get dependencies
+      run: flutter pub get
+      
+    - name: Setup iOS signing
+      if: matrix.build_type == 'release'
+      run: |
+        echo "${{ secrets.IOS_CERTIFICATE }}" | base64 --decode > ios_certificate.p12
+        echo "${{ secrets.IOS_PROVISIONING_PROFILE }}" | base64 --decode > ios_profile.mobileprovision
+        
+        # Import certificate
+        security create-keychain -p "" build.keychain
+        security import ios_certificate.p12 -t agg -k build.keychain -P "${{ secrets.IOS_CERTIFICATE_PASSWORD }}" -A
+        security list-keychains -s build.keychain
+        security default-keychain -s build.keychain
+        security unlock-keychain -p "" build.keychain
+        security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+        
+        # Install provisioning profile
+        mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+        cp ios_profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+        
+    - name: Install CocoaPods
+      run: |
+        cd ios
+        pod install
+        
+    - name: Build iOS
+      run: |
+        if [ "${{ matrix.build_type }}" == "release" ]; then
+          flutter build ios --release --flavor ${{ matrix.flavor }} --no-codesign
+        else
+          flutter build ios --debug --flavor ${{ matrix.flavor }} --no-codesign
+        fi
+        
+    - name: Create iOS Archive
+      if: matrix.build_type == 'release'
+      run: |
+        cd ios
+        xcodebuild archive \
+          -workspace Runner.xcworkspace \
+          -scheme Runner \
+          -configuration Release-${{ matrix.flavor }} \
+          -archivePath build/Runner.xcarchive \
+          -allowProvisioningUpdates
+          
+    - name: Export IPA
+      if: matrix.build_type == 'release'
+      run: |
+        cd ios
+        xcodebuild -exportArchive \
+          -archivePath build/Runner.xcarchive \
+          -exportPath build \
+          -exportOptionsPlist ExportOptions.plist
+          
+    - name: Upload iOS artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ios-${{ matrix.flavor }}-${{ matrix.build_type }}
+        path: |
+          ios/build/*.ipa
+          ios/build/Runner.xcarchive
+        retention-days: 30
+
+  # Deploy to Firebase App Distribution
+  deploy_firebase:
+    name: Deploy to Firebase App Distribution
+    runs-on: ubuntu-latest
+    needs: [build_android, build_ios]
+    if: github.ref == 'refs/heads/develop'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download Android artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: android-dev-debug
+        path: android-artifacts
+        
+    - name: Setup Firebase CLI
+      uses: w9jds/setup-firebase@main
+      with:
+        tools: cli
+        firebase_token: ${{ secrets.FIREBASE_TOKEN }}
+        
+    - name: Deploy to Firebase App Distribution
+      run: |
+        firebase appdistribution:distribute android-artifacts/app-dev-debug.apk \
+          --app ${{ secrets.FIREBASE_ANDROID_APP_ID }} \
+          --groups "internal-testers" \
+          --release-notes "Automated build from commit ${{ github.sha }}"
+
+  # Deploy to App Stores
+  deploy_stores:
+    name: Deploy to App Stores
+    runs-on: macos-latest
+    needs: [build_android, build_ios]
+    if: github.event_name == 'release'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download Android artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: android-prod-release
+        path: android-artifacts
+        
+    - name: Download iOS artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: ios-prod-release
+        path: ios-artifacts
+        
+    - name: Deploy to Google Play Store
+      uses: r0adkll/upload-google-play@v1
+      with:
+        serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
+        packageName: com.andco.schooltransport
+        releaseFiles: android-artifacts/*.aab
+        track: internal
+        status: completed
+        
+    - name: Deploy to App Store
+      run: |
+        xcrun altool --upload-app \
+          --type ios \
+          --file ios-artifacts/*.ipa \
+          --username ${{ secrets.APPLE_ID }} \
+          --password ${{ secrets.APP_SPECIFIC_PASSWORD }}
+
+  # Notify deployment status
+  notify:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs: [deploy_firebase, deploy_stores]
+    if: always()
+    
+    steps:
+    - name: Notify Slack
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        channel: '#deployments'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        fields: repo,message,commit,author,action,eventName,ref,workflow
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  # Security scanning
+  security_scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'

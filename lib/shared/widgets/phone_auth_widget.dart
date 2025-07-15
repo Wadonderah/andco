@@ -1,6 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_constants.dart';
@@ -252,12 +252,8 @@ class _PhoneAuthWidgetState extends ConsumerState<PhoneAuthWidget> {
     }
     // Basic phone validation - should start with + and have at least 10 digits
     final phoneRegex = RegExp(r'^\+[1-9]\d{1,14}$');
-    final digitsOnly = value.replaceAll(RegExp(r'[^\d]'), '');
-    if (digitsOnly.length < 10) {
-      return 'Please enter a valid phone number';
-    }
-    if (!value.startsWith('+')) {
-      return 'Phone number must include country code (e.g., +1)';
+    if (!phoneRegex.hasMatch(value)) {
+      return 'Please enter a valid phone number with country code (e.g., +1234567890)';
     }
     return null;
   }
@@ -281,30 +277,30 @@ class _PhoneAuthWidgetState extends ConsumerState<PhoneAuthWidget> {
 
     try {
       await ref.read(authControllerProvider.notifier).verifyPhoneNumber(
-        phoneNumber: _phoneController.text.trim(),
-        verificationCompleted: (PhoneAuthCredential credential) async {
-          // Auto-verification completed
-          await _signInWithCredential(credential);
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          setState(() {
-            _isLoading = false;
-          });
-          widget.onError?.call('Verification failed: ${e.message}');
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          setState(() {
-            _isLoading = false;
-            _isOtpSent = true;
-            _verificationId = verificationId;
-            _resendToken = resendToken;
-          });
-          _startCountdown();
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {
-          _verificationId = verificationId;
-        },
-      );
+            phoneNumber: _phoneController.text.trim(),
+            verificationCompleted: (PhoneAuthCredential credential) async {
+              // Auto-verification completed
+              await _signInWithCredential(credential);
+            },
+            verificationFailed: (FirebaseAuthException e) {
+              setState(() {
+                _isLoading = false;
+              });
+              widget.onError?.call('Verification failed: ${e.message}');
+            },
+            codeSent: (String verificationId, int? resendToken) {
+              setState(() {
+                _isLoading = false;
+                _isOtpSent = true;
+                _verificationId = verificationId;
+                _resendToken = resendToken;
+              });
+              _startCountdown();
+            },
+            codeAutoRetrievalTimeout: (String verificationId) {
+              _verificationId = verificationId;
+            },
+          );
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -339,11 +335,11 @@ class _PhoneAuthWidgetState extends ConsumerState<PhoneAuthWidget> {
   Future<void> _signInWithCredential(PhoneAuthCredential credential) async {
     try {
       await ref.read(authControllerProvider.notifier).signInWithPhoneCredential(
-        credential,
-        name: widget.name ?? _nameController.text.trim(),
-        role: widget.userRole,
-        schoolId: widget.schoolId,
-      );
+            credential,
+            name: widget.name ?? _nameController.text.trim(),
+            role: widget.userRole,
+            schoolId: widget.schoolId,
+          );
 
       widget.onSuccess?.call();
     } catch (e) {
@@ -354,14 +350,51 @@ class _PhoneAuthWidgetState extends ConsumerState<PhoneAuthWidget> {
     }
   }
 
-  void _resendOtp() {
-    _sendOtp();
+  void _resendOtp() async {
+    if (!_phoneFormKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await ref.read(authControllerProvider.notifier).verifyPhoneNumber(
+            phoneNumber: _phoneController.text.trim(),
+            verificationCompleted: (PhoneAuthCredential credential) async {
+              // Auto-verification completed
+              await _signInWithCredential(credential);
+            },
+            verificationFailed: (FirebaseAuthException e) {
+              setState(() {
+                _isLoading = false;
+              });
+              widget.onError?.call('Verification failed: ${e.message}');
+            },
+            codeSent: (String verificationId, int? resendToken) {
+              setState(() {
+                _isLoading = false;
+                _verificationId = verificationId;
+                _resendToken = resendToken;
+              });
+              _startCountdown();
+            },
+            codeAutoRetrievalTimeout: (String verificationId) {
+              _verificationId = verificationId;
+            },
+            forceResendingToken: _resendToken,
+          );
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      widget.onError?.call('Failed to resend OTP: $e');
+    }
   }
 
   void _startCountdown() {
     _countdown = 60;
     _canResend = false;
-    
+
     Future.doWhile(() async {
       await Future.delayed(const Duration(seconds: 1));
       if (mounted) {

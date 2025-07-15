@@ -62,6 +62,12 @@ class ChildModel extends HiveObject {
   @HiveField(18)
   final Map<String, dynamic>? metadata;
 
+  @HiveField(19)
+  final String? studentId;
+
+  @HiveField(20)
+  final String? gender;
+
   ChildModel({
     required this.id,
     required this.name,
@@ -82,6 +88,8 @@ class ChildModel extends HiveObject {
     required this.createdAt,
     required this.updatedAt,
     this.metadata,
+    this.studentId,
+    this.gender,
   });
 
   factory ChildModel.fromMap(Map<String, dynamic> map) {
@@ -93,7 +101,7 @@ class ChildModel extends HiveObject {
       grade: map['grade'] ?? '',
       className: map['className'] ?? '',
       photoUrl: map['photoUrl'],
-      dateOfBirth: map['dateOfBirth'] is Timestamp 
+      dateOfBirth: map['dateOfBirth'] is Timestamp
           ? (map['dateOfBirth'] as Timestamp).toDate()
           : DateTime.parse(map['dateOfBirth']),
       medicalInfo: map['medicalInfo'],
@@ -104,13 +112,17 @@ class ChildModel extends HiveObject {
       pickupStopId: map['pickupStopId'],
       dropoffStopId: map['dropoffStopId'],
       isActive: map['isActive'] ?? true,
-      createdAt: map['createdAt'] is Timestamp 
+      createdAt: map['createdAt'] is Timestamp
           ? (map['createdAt'] as Timestamp).toDate()
           : DateTime.parse(map['createdAt']),
-      updatedAt: map['updatedAt'] is Timestamp 
+      updatedAt: map['updatedAt'] is Timestamp
           ? (map['updatedAt'] as Timestamp).toDate()
           : DateTime.parse(map['updatedAt']),
-      metadata: map['metadata'] != null ? Map<String, dynamic>.from(map['metadata']) : null,
+      metadata: map['metadata'] != null
+          ? Map<String, dynamic>.from(map['metadata'])
+          : null,
+      studentId: map['studentId'],
+      gender: map['gender'],
     );
   }
 
@@ -135,6 +147,8 @@ class ChildModel extends HiveObject {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
       'metadata': metadata,
+      'studentId': studentId,
+      'gender': gender,
     };
   }
 
@@ -158,6 +172,8 @@ class ChildModel extends HiveObject {
     DateTime? createdAt,
     DateTime? updatedAt,
     Map<String, dynamic>? metadata,
+    String? studentId,
+    String? gender,
   }) {
     return ChildModel(
       id: id ?? this.id,
@@ -170,7 +186,8 @@ class ChildModel extends HiveObject {
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       medicalInfo: medicalInfo ?? this.medicalInfo,
       emergencyContact: emergencyContact ?? this.emergencyContact,
-      emergencyContactPhone: emergencyContactPhone ?? this.emergencyContactPhone,
+      emergencyContactPhone:
+          emergencyContactPhone ?? this.emergencyContactPhone,
       busId: busId ?? this.busId,
       routeId: routeId ?? this.routeId,
       pickupStopId: pickupStopId ?? this.pickupStopId,
@@ -179,6 +196,8 @@ class ChildModel extends HiveObject {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       metadata: metadata ?? this.metadata,
+      studentId: studentId ?? this.studentId,
+      gender: gender ?? this.gender,
     );
   }
 
@@ -186,7 +205,7 @@ class ChildModel extends HiveObject {
   int get age {
     final now = DateTime.now();
     int age = now.year - dateOfBirth.year;
-    if (now.month < dateOfBirth.month || 
+    if (now.month < dateOfBirth.month ||
         (now.month == dateOfBirth.month && now.day < dateOfBirth.day)) {
       age--;
     }
@@ -196,5 +215,6 @@ class ChildModel extends HiveObject {
   bool get hasTransportAssigned => busId != null && routeId != null;
   bool get hasPickupStop => pickupStopId != null;
   bool get hasDropoffStop => dropoffStopId != null;
-  bool get hasEmergencyContact => emergencyContact != null && emergencyContactPhone != null;
+  bool get hasEmergencyContact =>
+      emergencyContact != null && emergencyContactPhone != null;
 }

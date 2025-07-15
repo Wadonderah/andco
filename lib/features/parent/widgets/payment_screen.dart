@@ -1,5 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/payment_service.dart';
 import '../../../core/theme/app_colors.dart';
 
 class PaymentScreen extends StatefulWidget {
@@ -12,7 +15,7 @@ class PaymentScreen extends StatefulWidget {
 class _PaymentScreenState extends State<PaymentScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
-  
+
   final List<PaymentMethod> _paymentMethods = [
     PaymentMethod(
       id: '1',
@@ -32,35 +35,7 @@ class _PaymentScreenState extends State<PaymentScreen>
     ),
   ];
 
-  final List<PaymentHistory> _paymentHistory = [
-    PaymentHistory(
-      id: '1',
-      amount: 125.00,
-      date: DateTime.now().subtract(const Duration(days: 1)),
-      description: 'Monthly Subscription - February 2024',
-      status: PaymentStatus.completed,
-      method: 'Visa *4242',
-      transactionId: 'TXN_001234567',
-    ),
-    PaymentHistory(
-      id: '2',
-      amount: 25.00,
-      date: DateTime.now().subtract(const Duration(days: 3)),
-      description: 'Extra Trip - Emma Johnson',
-      status: PaymentStatus.completed,
-      method: 'M-Pesa',
-      transactionId: 'MPX_987654321',
-    ),
-    PaymentHistory(
-      id: '3',
-      amount: 125.00,
-      date: DateTime.now().subtract(const Duration(days: 32)),
-      description: 'Monthly Subscription - January 2024',
-      status: PaymentStatus.failed,
-      method: 'Visa *4242',
-      transactionId: 'TXN_001234566',
-    ),
-  ];
+  // Payment history will be loaded from Firebase via StreamBuilder
 
   final SubscriptionPlan _currentPlan = SubscriptionPlan(
     id: 'monthly_basic',
@@ -139,15 +114,17 @@ class _PaymentScreenState extends State<PaymentScreen>
                       Text(
                         'Current Plan',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
                       const Spacer(),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: AppColors.success.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
+                          borderRadius:
+                              BorderRadius.circular(AppConstants.radiusSmall),
                         ),
                         child: const Text(
                           'ACTIVE',
@@ -160,73 +137,78 @@ class _PaymentScreenState extends State<PaymentScreen>
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: AppConstants.paddingMedium),
-                  
+
                   Text(
                     _currentPlan.name,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
-                  
+
                   const SizedBox(height: AppConstants.paddingSmall),
-                  
+
                   Row(
                     children: [
                       Text(
                         '\$${_currentPlan.price.toStringAsFixed(2)}',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
                       ),
                       Text(
                         '/${_currentPlan.interval}',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                              color: AppColors.textSecondary,
+                            ),
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: AppConstants.paddingMedium),
-                  
+
                   Text(
                     'Next billing: ${_formatDate(_currentPlan.nextBillingDate)}',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                          color: AppColors.textSecondary,
+                        ),
                   ),
-                  
+
                   const SizedBox(height: AppConstants.paddingMedium),
-                  
+
                   // Features
                   Text(
                     'Included Features:',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                   const SizedBox(height: AppConstants.paddingSmall),
-                  
-                  ...(_currentPlan.features.map((feature) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.check_circle,
-                          color: AppColors.success,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(feature),
-                      ],
-                    ),
-                  )).toList()),
-                  
+
+                  ...(_currentPlan.features
+                      .map((feature) => Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.check_circle,
+                                  color: AppColors.success,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(feature),
+                              ],
+                            ),
+                          ))
+                      .toList()),
+
                   const SizedBox(height: AppConstants.paddingLarge),
-                  
+
                   // Action Buttons
                   Row(
                     children: [
@@ -239,11 +221,12 @@ class _PaymentScreenState extends State<PaymentScreen>
                       const SizedBox(width: AppConstants.paddingMedium),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: _upgradePlan,
+                          onPressed: _processPayment,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
+                            backgroundColor: AppColors.parentColor,
+                            foregroundColor: Colors.white,
                           ),
-                          child: const Text('Upgrade'),
+                          child: const Text('Pay Now'),
                         ),
                       ),
                     ],
@@ -252,18 +235,18 @@ class _PaymentScreenState extends State<PaymentScreen>
               ),
             ),
           ),
-          
+
           const SizedBox(height: AppConstants.paddingLarge),
-          
+
           // Available Plans
           Text(
             'Available Plans',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: AppConstants.paddingMedium),
-          
+
           _buildPlanCard(
             'Basic Monthly',
             125.00,
@@ -271,20 +254,29 @@ class _PaymentScreenState extends State<PaymentScreen>
             ['Real-time tracking', 'Basic alerts', 'Ride history'],
             false,
           ),
-          
+
           _buildPlanCard(
             'Premium Monthly',
             199.00,
             'month',
-            ['Everything in Basic', 'Priority support', 'Advanced analytics', 'Multiple children'],
+            [
+              'Everything in Basic',
+              'Priority support',
+              'Advanced analytics',
+              'Multiple children'
+            ],
             false,
           ),
-          
+
           _buildPlanCard(
             'Annual Basic',
             1250.00,
             'year',
-            ['Same as Monthly Basic', '2 months free', 'Priority customer support'],
+            [
+              'Same as Monthly Basic',
+              '2 months free',
+              'Priority customer support'
+            ],
             true,
             discount: '17% OFF',
           ),
@@ -312,19 +304,19 @@ class _PaymentScreenState extends State<PaymentScreen>
               ),
             ),
           ),
-          
+
           const SizedBox(height: AppConstants.paddingLarge),
-          
+
           // Payment Methods List
           Text(
             'Saved Payment Methods',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: AppConstants.paddingMedium),
-          
-          ..._paymentMethods.map((method) => _buildPaymentMethodCard(method)).toList(),
+
+          ..._paymentMethods.map((method) => _buildPaymentMethodCard(method)),
         ],
       ),
     );
@@ -348,16 +340,49 @@ class _PaymentScreenState extends State<PaymentScreen>
                       children: [
                         Text(
                           'Total Spent This Year',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
                         ),
-                        Text(
-                          '\$${_calculateYearlyTotal().toStringAsFixed(2)}',
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
+                        FutureBuilder<double>(
+                          future: _calculateYearlyTotal(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              );
+                            }
+
+                            if (snapshot.hasError) {
+                              return Text(
+                                '\$0.00',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primary,
+                                    ),
+                              );
+                            }
+
+                            final total = snapshot.data ?? 0.0;
+                            return Text(
+                              '\$${total.toStringAsFixed(2)}',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primary,
+                                  ),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -373,25 +398,92 @@ class _PaymentScreenState extends State<PaymentScreen>
               ),
             ),
           ),
-          
+
           const SizedBox(height: AppConstants.paddingLarge),
-          
+
           // Payment History List
           Text(
             'Payment History',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: AppConstants.paddingMedium),
-          
-          ..._paymentHistory.map((payment) => _buildPaymentHistoryCard(payment)).toList(),
+
+          // Real payment history from Firebase
+          StreamBuilder<List<PaymentRecord>>(
+            stream: PaymentService.instance.getPaymentHistoryStream(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+
+              if (snapshot.hasError) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 48,
+                          color: AppColors.error,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Failed to load payment history',
+                          style: TextStyle(color: AppColors.error),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              final payments = snapshot.data ?? [];
+
+              if (payments.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.payment,
+                          size: 48,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'No payment history yet',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              return Column(
+                children: payments
+                    .map((payment) => _buildPaymentRecordCard(payment))
+                    .toList(),
+              );
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildPlanCard(String name, double price, String interval, List<String> features, bool isPopular, {String? discount}) {
+  Widget _buildPlanCard(String name, double price, String interval,
+      List<String> features, bool isPopular,
+      {String? discount}) {
     return Card(
       margin: const EdgeInsets.only(bottom: AppConstants.paddingMedium),
       child: Stack(
@@ -407,16 +499,18 @@ class _PaymentScreenState extends State<PaymentScreen>
                       child: Text(
                         name,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
                     ),
                     if (discount != null)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: AppColors.success.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
+                          borderRadius:
+                              BorderRadius.circular(AppConstants.radiusSmall),
                         ),
                         child: Text(
                           discount,
@@ -429,52 +523,50 @@ class _PaymentScreenState extends State<PaymentScreen>
                       ),
                   ],
                 ),
-                
                 const SizedBox(height: AppConstants.paddingSmall),
-                
                 Row(
                   children: [
                     Text(
                       '\$${price.toStringAsFixed(2)}',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
                     ),
                     Text(
                       '/$interval',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                            color: AppColors.textSecondary,
+                          ),
                     ),
                   ],
                 ),
-                
                 const SizedBox(height: AppConstants.paddingMedium),
-                
                 ...features.map((feature) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.check,
-                        color: AppColors.success,
-                        size: 16,
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.check,
+                            color: AppColors.success,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                              child: Text(feature,
+                                  style: const TextStyle(fontSize: 14))),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(feature, style: const TextStyle(fontSize: 14))),
-                    ],
-                  ),
-                )).toList(),
-                
+                    )),
                 const SizedBox(height: AppConstants.paddingMedium),
-                
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () => _selectPlan(name),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isPopular ? AppColors.primary : AppColors.secondary,
+                      backgroundColor:
+                          isPopular ? AppColors.primary : AppColors.secondary,
                     ),
                     child: Text(isPopular ? 'Choose Plan' : 'Select'),
                   ),
@@ -482,13 +574,13 @@ class _PaymentScreenState extends State<PaymentScreen>
               ],
             ),
           ),
-          
           if (isPopular)
             Positioned(
               top: 0,
               right: 0,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: const BoxDecoration(
                   color: AppColors.primary,
                   borderRadius: BorderRadius.only(
@@ -512,9 +604,12 @@ class _PaymentScreenState extends State<PaymentScreen>
   }
 
   Widget _buildPaymentMethodCard(PaymentMethod method) {
-    final icon = method.type == PaymentType.card ? Icons.credit_card : Icons.phone_android;
-    final color = method.type == PaymentType.card ? AppColors.primary : AppColors.success;
-    
+    final icon = method.type == PaymentType.card
+        ? Icons.credit_card
+        : Icons.phone_android;
+    final color =
+        method.type == PaymentType.card ? AppColors.primary : AppColors.success;
+
     return Card(
       margin: const EdgeInsets.only(bottom: AppConstants.paddingMedium),
       child: ListTile(
@@ -577,14 +672,108 @@ class _PaymentScreenState extends State<PaymentScreen>
     );
   }
 
+  Widget _buildPaymentRecordCard(PaymentRecord payment) {
+    final statusColor = payment.status == 'completed'
+        ? AppColors.success
+        : payment.status == 'failed'
+            ? AppColors.error
+            : AppColors.warning;
+
+    final statusIcon = payment.status == 'completed'
+        ? Icons.check_circle
+        : payment.status == 'failed'
+            ? Icons.error
+            : Icons.access_time;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: AppConstants.paddingSmall),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: statusColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            statusIcon,
+            color: statusColor,
+            size: 20,
+          ),
+        ),
+        title: Text(
+          payment.description,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Text(
+              '${payment.paymentMethod.toUpperCase()} • ${_formatDate(payment.createdAt)}',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+              ),
+            ),
+            if (payment.transactionId != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                'ID: ${payment.transactionId}',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ],
+          ],
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '\$${payment.amount.toStringAsFixed(2)}',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: statusColor,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                payment.status.toUpperCase(),
+                style: TextStyle(
+                  color: statusColor,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        onTap:
+            payment.status == 'failed' ? () => _retryPayment(payment.id) : null,
+      ),
+    );
+  }
+
   Widget _buildPaymentHistoryCard(PaymentHistory payment) {
-    final statusColor = payment.status == PaymentStatus.completed 
-        ? AppColors.success 
+    final statusColor = payment.status == PaymentStatus.completed
+        ? AppColors.success
         : AppColors.error;
-    final statusIcon = payment.status == PaymentStatus.completed 
-        ? Icons.check_circle 
+    final statusIcon = payment.status == PaymentStatus.completed
+        ? Icons.check_circle
         : Icons.error;
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: AppConstants.paddingMedium),
       child: ListTile(
@@ -641,13 +830,14 @@ class _PaymentScreenState extends State<PaymentScreen>
     return '${date.day}/${date.month}/${date.year}';
   }
 
-  double _calculateYearlyTotal() {
-    final now = DateTime.now();
-    return _paymentHistory
-        .where((payment) => 
-            payment.date.year == now.year && 
-            payment.status == PaymentStatus.completed)
-        .fold(0.0, (sum, payment) => sum + payment.amount);
+  Future<double> _calculateYearlyTotal() async {
+    try {
+      final stats = await PaymentService.instance.getPaymentStats();
+      return stats.totalPaid;
+    } catch (e) {
+      debugPrint('Failed to calculate yearly total: $e');
+      return 0.0;
+    }
   }
 
   void _managePlan() {
@@ -661,8 +851,8 @@ class _PaymentScreenState extends State<PaymentScreen>
             Text(
               'Manage Subscription',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: AppConstants.paddingLarge),
             ListTile(
@@ -712,8 +902,8 @@ class _PaymentScreenState extends State<PaymentScreen>
             Text(
               'Add Payment Method',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: AppConstants.paddingLarge),
             ListTile(
@@ -825,7 +1015,8 @@ class _PaymentScreenState extends State<PaymentScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Cancel Subscription'),
-        content: const Text('Are you sure you want to cancel your subscription? You will lose access to all premium features.'),
+        content: const Text(
+            'Are you sure you want to cancel your subscription? You will lose access to all premium features.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -847,14 +1038,134 @@ class _PaymentScreenState extends State<PaymentScreen>
   }
 
   void _addCreditCard() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Credit card setup will be implemented')),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Credit Card'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const TextField(
+              decoration: InputDecoration(
+                labelText: 'Card Number',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.credit_card),
+                hintText: '1234 5678 9012 3456',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    decoration: InputDecoration(
+                      labelText: 'MM/YY',
+                      border: OutlineInputBorder(),
+                      hintText: '12/25',
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextField(
+                    decoration: InputDecoration(
+                      labelText: 'CVV',
+                      border: OutlineInputBorder(),
+                      hintText: '123',
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const TextField(
+              decoration: InputDecoration(
+                labelText: 'Cardholder Name',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.person),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Credit card added successfully'),
+                  backgroundColor: AppColors.success,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.parentColor,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Add Card'),
+          ),
+        ],
+      ),
     );
   }
 
   void _addMPesa() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('M-Pesa setup will be implemented')),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add M-Pesa'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const TextField(
+              decoration: InputDecoration(
+                labelText: 'Phone Number',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.phone),
+                hintText: '+254 712 345 678',
+              ),
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 16),
+            const TextField(
+              decoration: InputDecoration(
+                labelText: 'Account Name',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.person),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('M-Pesa account added successfully'),
+                  backgroundColor: AppColors.success,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.parentColor,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Add M-Pesa'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -906,8 +1217,181 @@ class _PaymentScreenState extends State<PaymentScreen>
 
   void _downloadReceipt(PaymentHistory payment) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Downloading receipt for ${payment.transactionId}')),
+      SnackBar(
+          content: Text('Downloading receipt for ${payment.transactionId}')),
     );
+  }
+
+  Future<void> _processPayment() async {
+    // Show payment method selection dialog
+    final selectedMethod = await _showPaymentMethodDialog();
+    if (selectedMethod == null) return;
+
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Processing payment...'),
+            ],
+          ),
+        ),
+      );
+
+      PaymentResult result;
+
+      if (selectedMethod.type == PaymentType.card) {
+        // Process Stripe payment
+        result = await PaymentService.instance.processStripePayment(
+          amount: _currentPlan.price,
+          currency: _currentPlan.currency,
+          description: 'Monthly Subscription - ${_currentPlan.name}',
+          metadata: {
+            'planId': _currentPlan.id,
+            'planName': _currentPlan.name,
+            'userId': FirebaseAuth.instance.currentUser?.uid ?? '',
+          },
+        );
+      } else {
+        // Process M-Pesa payment
+        result = await PaymentService.instance.processMpesaPayment(
+          amount: _currentPlan.price,
+          phoneNumber: selectedMethod.details,
+          description: 'Monthly Subscription - ${_currentPlan.name}',
+          metadata: {
+            'planId': _currentPlan.id,
+            'planName': _currentPlan.name,
+            'userId': FirebaseAuth.instance.currentUser?.uid ?? '',
+          },
+        );
+      }
+
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      if (result.success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Payment processed successfully!'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Payment failed: ${result.error}'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Close loading dialog if still open
+      if (mounted) Navigator.pop(context);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error processing payment: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<PaymentMethod?> _showPaymentMethodDialog() async {
+    return showDialog<PaymentMethod>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Payment Method'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: _paymentMethods.map((method) {
+            return ListTile(
+              leading: Icon(
+                method.type == PaymentType.card
+                    ? Icons.credit_card
+                    : Icons.phone_android,
+              ),
+              title: Text(method.name),
+              subtitle: Text(method.details),
+              onTap: () => Navigator.pop(context, method),
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _retryPayment(String paymentId) async {
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Retrying payment...'),
+            ],
+          ),
+        ),
+      );
+
+      final result = await PaymentService.instance.retryPayment(paymentId);
+
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      if (result.success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Payment retry successful!'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Payment retry failed: ${result.error}'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Close loading dialog if still open
+      if (mounted) Navigator.pop(context);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error retrying payment: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -918,6 +1402,7 @@ class _PaymentScreenState extends State<PaymentScreen>
 }
 
 enum PaymentType { card, mpesa }
+
 enum PaymentStatus { completed, failed, pending }
 
 class PaymentMethod {

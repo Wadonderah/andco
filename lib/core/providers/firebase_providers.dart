@@ -2,12 +2,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../shared/models/bus_model.dart';
 import '../../shared/models/trip_model.dart';
+import '../repositories/attendance_repository.dart';
 import '../repositories/bus_repository.dart';
 import '../repositories/checkin_repository.dart';
 import '../repositories/child_repository.dart';
+import '../repositories/feedback_repository.dart';
+import '../repositories/incident_repository.dart';
 import '../repositories/notification_repository.dart';
 import '../repositories/payment_repository.dart';
 import '../repositories/route_repository.dart';
+import '../repositories/safety_check_repository.dart';
+import '../repositories/school_repository.dart';
 import '../repositories/trip_repository.dart';
 import '../repositories/user_repository.dart';
 import '../services/firebase_service.dart';
@@ -53,6 +58,11 @@ final routeRepositoryProvider = Provider<RouteRepository>((ref) {
   return RouteRepository();
 });
 
+/// School repository provider
+final schoolRepositoryProvider = Provider<SchoolRepository>((ref) {
+  return SchoolRepository();
+});
+
 /// Trip repository provider
 final tripRepositoryProvider = Provider<TripRepository>((ref) {
   return TripRepository();
@@ -71,6 +81,16 @@ final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
 /// Notification repository provider
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
   return NotificationRepository();
+});
+
+/// Incident repository provider
+final incidentRepositoryProvider = Provider<IncidentRepository>((ref) {
+  return IncidentRepository();
+});
+
+/// Feedback repository provider
+final feedbackRepositoryProvider = Provider<FeedbackRepository>((ref) {
+  return FeedbackRepository();
 });
 
 // ==================== STREAM PROVIDERS ====================
@@ -134,6 +154,71 @@ final userNotificationsStreamProvider =
 final userPaymentsStreamProvider = StreamProvider.family((ref, String userId) {
   final paymentRepo = ref.watch(paymentRepositoryProvider);
   return paymentRepo.getPaymentsStreamForUser(userId);
+});
+
+/// All schools stream provider
+final allSchoolsStreamProvider = StreamProvider((ref) {
+  final schoolRepo = ref.watch(schoolRepositoryProvider);
+  return schoolRepo.getAllStream();
+});
+
+/// Pending schools stream provider
+final pendingSchoolsStreamProvider = StreamProvider((ref) {
+  final schoolRepo = ref.watch(schoolRepositoryProvider);
+  return schoolRepo.getPendingSchoolsStream();
+});
+
+/// Active schools stream provider
+final activeSchoolsStreamProvider = StreamProvider((ref) {
+  final schoolRepo = ref.watch(schoolRepositoryProvider);
+  return schoolRepo.getActiveSchoolsStream();
+});
+
+/// School by ID stream provider
+final schoolByIdStreamProvider = StreamProvider.family((ref, String schoolId) {
+  final schoolRepo = ref.watch(schoolRepositoryProvider);
+  return schoolRepo.getStreamById(schoolId);
+});
+
+/// Children by parent stream provider
+final childrenByParentStreamProvider =
+    StreamProvider.family((ref, String parentId) {
+  final childRepo = ref.watch(childRepositoryProvider);
+  return childRepo.getChildrenStreamForParent(parentId);
+});
+
+/// Children by school stream provider
+final childrenBySchoolStreamProvider =
+    StreamProvider.family((ref, String schoolId) {
+  final childRepo = ref.watch(childRepositoryProvider);
+  return childRepo.getChildrenStreamForSchool(schoolId);
+});
+
+/// Children by route stream provider
+final childrenByRouteStreamProvider =
+    StreamProvider.family((ref, String routeId) {
+  final childRepo = ref.watch(childRepositoryProvider);
+  return childRepo.getChildrenStreamForRoute(routeId);
+});
+
+/// Attendance repository provider
+final attendanceRepositoryProvider = Provider((ref) => AttendanceRepository());
+
+/// Safety check repository provider
+final safetyCheckRepositoryProvider =
+    Provider((ref) => SafetyCheckRepository());
+
+/// Routes by school stream provider (for driver access)
+final routesBySchoolStreamProvider =
+    StreamProvider.family((ref, String schoolId) {
+  final routeRepo = ref.watch(routeRepositoryProvider);
+  return routeRepo.getRoutesStreamForSchool(schoolId);
+});
+
+/// Routes by bus stream provider
+final routesByBusStreamProvider = StreamProvider.family((ref, String busId) {
+  final routeRepo = ref.watch(routeRepositoryProvider);
+  return routeRepo.getRoutesStreamForBus(busId);
 });
 
 // ==================== STATE PROVIDERS ====================
@@ -235,7 +320,7 @@ final busLocationStreamProvider =
   final busRepo = ref.watch(busRepositoryProvider);
   return busRepo.getStreamById(busId);
 });
-s
+
 /// Trip location updates stream provider
 final tripLocationStreamProvider =
     StreamProvider.family<LocationData?, String>((ref, String tripId) {
@@ -248,7 +333,8 @@ final tripLocationStreamProvider =
 /// Emergency alert provider
 final emergencyAlertProvider = Provider((ref) {
   final notificationService = ref.watch(notificationServiceProvider);
-  return (String schoolId, String message, String severity, {Map<String, dynamic>? additionalData}) async {
+  return (String schoolId, String message, String severity,
+      {Map<String, dynamic>? additionalData}) async {
     await notificationService.sendEmergencyNotification(
       schoolId: schoolId,
       message: message,
@@ -261,7 +347,8 @@ final emergencyAlertProvider = Provider((ref) {
 /// SOS provider
 final sosProvider = Provider((ref) {
   final notificationService = ref.watch(notificationServiceProvider);
-  return (String schoolId, String message, Map<String, dynamic> location) async {
+  return (String schoolId, String message,
+      Map<String, dynamic> location) async {
     await notificationService.sendEmergencyNotification(
       schoolId: schoolId,
       message: message,

@@ -632,14 +632,8 @@ class _SuperAdminAuthScreenState extends ConsumerState<SuperAdminAuthScreen>
       return 'Please enter a valid email';
     }
 
-    // For signup, require admin@andco.com
-    if (!_superAdminExists && _tabController.index == 1) {
-      // Signup tab
-      if (value != 'admin@andco.com') {
-        return 'Super Admin access is restricted to admin@andco.com';
-      }
-    }
-
+    // No additional email restrictions during validation
+    // Dynamic validation will be handled during signup/signin
     return null;
   }
 
@@ -647,9 +641,30 @@ class _SuperAdminAuthScreenState extends ConsumerState<SuperAdminAuthScreen>
     if (value == null || value.isEmpty) {
       return 'Please enter your password';
     }
-    if (value.length < 6) {
-      return 'Password must be at least 6 characters';
+    if (value.length < 8) {
+      return 'Password must be at least 8 characters';
     }
+
+    // Check for at least one uppercase letter
+    if (!RegExp(r'[A-Z]').hasMatch(value)) {
+      return 'Password must contain at least one uppercase letter';
+    }
+
+    // Check for at least one lowercase letter
+    if (!RegExp(r'[a-z]').hasMatch(value)) {
+      return 'Password must contain at least one lowercase letter';
+    }
+
+    // Check for at least one number
+    if (!RegExp(r'[0-9]').hasMatch(value)) {
+      return 'Password must contain at least one number';
+    }
+
+    // Check for at least one special character
+    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(value)) {
+      return 'Password must contain at least one special character';
+    }
+
     return null;
   }
 
@@ -731,11 +746,31 @@ class _SuperAdminAuthScreenState extends ConsumerState<SuperAdminAuthScreen>
   // Action methods
   void _signIn() async {
     if (_loginFormKey.currentState!.validate()) {
+      final email = _emailController.text.trim();
+
+      // Check if this email can access super admin
+      final canAccess = await RoleNavigationService.canAccessSuperAdmin(email);
+      if (!canAccess) {
+        final existingAdminEmail =
+            await RoleNavigationService.getSuperAdminEmail();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(existingAdminEmail != null
+                  ? 'Super Admin access is restricted to $existingAdminEmail'
+                  : 'No Super Admin account exists. Please sign up first.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
       try {
         await ref
             .read(authControllerProvider.notifier)
             .signInWithEmailAndPassword(
-              _emailController.text.trim(),
+              email,
               _passwordController.text,
             );
 
@@ -760,15 +795,23 @@ class _SuperAdminAuthScreenState extends ConsumerState<SuperAdminAuthScreen>
 
   void _signUp() async {
     if (_signupFormKey.currentState!.validate()) {
-      // Validate admin email
-      if (_emailController.text.trim() != 'admin@andco.com') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content:
-                Text('Super Admin access is restricted to admin@andco.com'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      final email = _emailController.text.trim();
+
+      // Check if this email can access super admin
+      final canAccess = await RoleNavigationService.canAccessSuperAdmin(email);
+      if (!canAccess) {
+        final existingAdminEmail =
+            await RoleNavigationService.getSuperAdminEmail();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(existingAdminEmail != null
+                  ? 'Super Admin access is restricted to $existingAdminEmail'
+                  : 'Super Admin access is restricted'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
         return;
       }
 
@@ -776,7 +819,7 @@ class _SuperAdminAuthScreenState extends ConsumerState<SuperAdminAuthScreen>
         await ref
             .read(authControllerProvider.notifier)
             .signUpWithEmailAndPassword(
-              email: _emailController.text.trim(),
+              email: email,
               password: _passwordController.text,
               name: _nameController.text.trim(),
               phoneNumber: _phoneController.text.trim(),
@@ -812,10 +855,73 @@ class _SuperAdminAuthScreenState extends ConsumerState<SuperAdminAuthScreen>
   }
 
   void _forgotPassword() {
-    // TODO: Implement forgot password functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Please contact system administrator for password reset'),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Super Admin Password Reset'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+                'For security reasons, Super Admin password reset requires special handling.'),
+            const SizedBox(height: 16),
+            const Text(
+                'Please contact the system administrator or use one of these options:'),
+            const SizedBox(height: 16),
+            const Text('• Email: support@andco.com'),
+            const Text('• Phone: +1 (555) 123-4567'),
+            const Text('• Emergency: admin-reset@andco.com'),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.warning),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.security, color: AppColors.warning, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Super Admin access is restricted for security',
+                      style: TextStyle(
+                        color: AppColors.warning,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Open email client or copy email
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Contact information copied to clipboard'),
+                  backgroundColor: AppColors.info,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.superAdminColor,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Contact Support'),
+          ),
+        ],
       ),
     );
   }

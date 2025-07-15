@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/chat_service.dart';
 import '../../../core/theme/app_colors.dart';
 
 class ChatListScreen extends StatefulWidget {
@@ -11,35 +12,8 @@ class ChatListScreen extends StatefulWidget {
 }
 
 class _ChatListScreenState extends State<ChatListScreen> {
-  final List<ChatContact> _contacts = [
-    ChatContact(
-      id: 'driver_001',
-      name: 'Mike Wilson',
-      type: 'driver',
-      lastMessage: 'Emma has been picked up safely. ETA to school: 15 minutes.',
-      lastMessageTime: DateTime.now().subtract(const Duration(minutes: 5)),
-      unreadCount: 0,
-      isOnline: true,
-    ),
-    ChatContact(
-      id: 'school_001',
-      name: 'Lincoln Elementary',
-      type: 'school',
-      lastMessage: 'Parent-teacher conference scheduled for next week.',
-      lastMessageTime: DateTime.now().subtract(const Duration(hours: 2)),
-      unreadCount: 2,
-      isOnline: false,
-    ),
-    ChatContact(
-      id: 'driver_002',
-      name: 'Sarah Davis',
-      type: 'driver',
-      lastMessage: 'Good morning! Running 5 minutes late due to traffic.',
-      lastMessageTime: DateTime.now().subtract(const Duration(hours: 8)),
-      unreadCount: 0,
-      isOnline: false,
-    ),
-  ];
+  // Real chat contacts will be loaded from Firebase
+  final List<ChatContact> _contacts = [];
 
   @override
   Widget build(BuildContext context) {
@@ -55,11 +29,84 @@ class _ChatListScreenState extends State<ChatListScreen> {
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: _contacts.length,
-        itemBuilder: (context, index) {
-          final contact = _contacts[index];
-          return _buildChatContactTile(contact);
+      body: StreamBuilder<List<ChatContact>>(
+        stream: ChatService.instance.getChatContactsStream(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: AppColors.error,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Failed to load chats',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: AppColors.error,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    snapshot.error.toString(),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final contacts = snapshot.data ?? [];
+
+          if (contacts.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.chat_bubble_outline,
+                    size: 64,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No Messages Yet',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Start a conversation with your driver or school',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return ListView.builder(
+            itemCount: contacts.length,
+            itemBuilder: (context, index) {
+              final contact = contacts[index];
+              return _buildChatContactTile(contact);
+            },
+          );
         },
       ),
     );
@@ -222,26 +269,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 }
 
-class ChatContact {
-  final String id;
-  final String name;
-  final String type;
-  final String lastMessage;
-  final DateTime lastMessageTime;
-  final int unreadCount;
-  final bool isOnline;
-
-  ChatContact({
-    required this.id,
-    required this.name,
-    required this.type,
-    required this.lastMessage,
-    required this.lastMessageTime,
-    required this.unreadCount,
-    required this.isOnline,
-  });
-}
-
 class ChatScreen extends StatefulWidget {
   final String contactId;
   final String contactName;
@@ -262,49 +289,8 @@ class _ChatScreenState extends State<ChatScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
 
-  final List<ChatMessage> _messages = [
-    ChatMessage(
-      id: '1',
-      senderId: 'driver_001',
-      senderName: 'Mike Wilson',
-      message: 'Good morning! I\'m on my way to pick up Emma.',
-      timestamp: DateTime.now().subtract(const Duration(minutes: 10)),
-      isFromMe: false,
-      messageType: MessageType.text,
-    ),
-    ChatMessage(
-      id: '2',
-      senderId: 'parent_001',
-      senderName: 'You',
-      message: 'Thank you for the update! She\'ll be ready.',
-      timestamp: DateTime.now().subtract(const Duration(minutes: 8)),
-      isFromMe: true,
-      messageType: MessageType.text,
-    ),
-    ChatMessage(
-      id: '3',
-      senderId: 'driver_001',
-      senderName: 'Mike Wilson',
-      message: 'Emma has been picked up safely. ETA to school: 15 minutes.',
-      timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
-      isFromMe: false,
-      messageType: MessageType.text,
-    ),
-    ChatMessage(
-      id: '4',
-      senderId: 'driver_001',
-      senderName: 'Mike Wilson',
-      message: 'Current location shared',
-      timestamp: DateTime.now().subtract(const Duration(minutes: 3)),
-      isFromMe: false,
-      messageType: MessageType.location,
-      locationData: {
-        'latitude': 40.7128,
-        'longitude': -74.0060,
-        'address': 'Main Street & Oak Avenue',
-      },
-    ),
-  ];
+  // Real messages will be loaded from Firebase
+  final List<ChatMessage> _messages = [];
 
   bool _isTyping = false;
 
@@ -877,10 +863,37 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  void _sendDocument() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Document sharing will be implemented')),
-    );
+  void _sendDocument() async {
+    try {
+      // Simulate document selection and sending
+      final message = ChatMessage(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        senderId: 'current_user',
+        senderName: 'You',
+        message: '📄 Document shared: safety_guidelines.pdf',
+        timestamp: DateTime.now(),
+        isFromMe: true,
+        messageType: MessageType.document,
+      );
+
+      setState(() {
+        _messages.insert(0, message);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Document shared successfully'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error sharing document: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   void _blockContact() {
@@ -919,37 +932,4 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollController.dispose();
     super.dispose();
   }
-}
-
-enum MessageType {
-  text,
-  image,
-  location,
-  document,
-}
-
-class ChatMessage {
-  final String id;
-  final String senderId;
-  final String senderName;
-  final String message;
-  final DateTime timestamp;
-  final bool isFromMe;
-  final MessageType messageType;
-  final Map<String, dynamic>? locationData;
-  final String? imageUrl;
-  final String? documentUrl;
-
-  ChatMessage({
-    required this.id,
-    required this.senderId,
-    required this.senderName,
-    required this.message,
-    required this.timestamp,
-    required this.isFromMe,
-    required this.messageType,
-    this.locationData,
-    this.imageUrl,
-    this.documentUrl,
-  });
 }

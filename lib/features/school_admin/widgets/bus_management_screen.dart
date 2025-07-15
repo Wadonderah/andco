@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_constants.dart';
@@ -975,9 +976,19 @@ class _BusManagementScreenState extends State<BusManagementScreen>
   }
 
   void _addNewBus() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Add new bus functionality will be implemented')),
+    showDialog(
+      context: context,
+      builder: (context) => _AddBusDialog(
+        onBusAdded: () {
+          setState(() {});
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Bus added successfully'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -1005,6 +1016,172 @@ enum BusStatus { active, maintenance, inactive }
 enum RouteStatus { active, suspended, planning }
 
 enum BusFilter { all, active, maintenance, inactive }
+
+class _AddBusDialog extends StatefulWidget {
+  final VoidCallback onBusAdded;
+
+  const _AddBusDialog({required this.onBusAdded});
+
+  @override
+  State<_AddBusDialog> createState() => _AddBusDialogState();
+}
+
+class _AddBusDialogState extends State<_AddBusDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _busNumberController = TextEditingController();
+  final _driverNameController = TextEditingController();
+  final _capacityController = TextEditingController();
+  final _plateNumberController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _busNumberController.dispose();
+    _driverNameController.dispose();
+    _capacityController.dispose();
+    _plateNumberController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Add New Bus'),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _busNumberController,
+                decoration: const InputDecoration(
+                  labelText: 'Bus Number',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.directions_bus),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter bus number';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _plateNumberController,
+                decoration: const InputDecoration(
+                  labelText: 'License Plate',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.confirmation_number),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter license plate';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _capacityController,
+                decoration: const InputDecoration(
+                  labelText: 'Capacity',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.people),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter capacity';
+                  }
+                  final capacity = int.tryParse(value);
+                  if (capacity == null || capacity <= 0) {
+                    return 'Please enter a valid capacity';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _driverNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Driver Name',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.person),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter driver name';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _isLoading ? null : _saveBus,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.schoolAdminColor,
+            foregroundColor: Colors.white,
+          ),
+          child: _isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Add Bus'),
+        ),
+      ],
+    );
+  }
+
+  void _saveBus() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Create bus data
+      final busData = {
+        'busNumber': _busNumberController.text.trim(),
+        'plateNumber': _plateNumberController.text.trim(),
+        'capacity': int.parse(_capacityController.text.trim()),
+        'driverName': _driverNameController.text.trim(),
+        'status': 'active',
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+        'schoolId': 'current_school_id', // In real app, get from auth
+      };
+
+      // Add to Firestore
+      await FirebaseFirestore.instance.collection('buses').add(busData);
+
+      if (mounted) {
+        Navigator.pop(context);
+        widget.onBusAdded();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to add bus: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+}
 
 class SchoolBus {
   final String id;

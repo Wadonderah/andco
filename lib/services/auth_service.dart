@@ -116,11 +116,13 @@ class AuthService {
     required void Function(FirebaseAuthException) onVerificationFailed,
     required void Function(String, int?) onCodeSent,
     required void Function(String) onCodeAutoRetrievalTimeout,
+    int? forceResendingToken,
   }) async {
     try {
       await _auth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         timeout: const Duration(seconds: 60),
+        forceResendingToken: forceResendingToken,
         verificationCompleted: (PhoneAuthCredential credential) {
           debugPrint('✅ Phone verification completed automatically');
           onVerificationCompleted(credential);
@@ -224,6 +226,42 @@ class AuthService {
     return signInWithPhoneCredential(credential);
   }
 
+  /// Sign in with SMS code using stored verification ID
+  ///
+  /// This is a convenience method that uses the verification ID stored
+  /// from the most recent phone verification process.
+  ///
+  /// [smsCode] - SMS code entered by user
+  ///
+  /// Returns [UserCredential] on success
+  /// Throws [AuthException] if no verification ID is stored or on failure
+  Future<UserCredential> signInWithStoredVerificationId(String smsCode) async {
+    if (_verificationId == null) {
+      throw AuthException(
+          'No verification ID available. Please verify phone number first.');
+    }
+    return signInWithPhone(_verificationId!, smsCode);
+  }
+
+  /// Login with SMS code using stored verification ID (Alias)
+  ///
+  /// This is an alias method for [signInWithStoredVerificationId] to provide
+  /// consistent terminology across the app. Both methods do the same thing.
+  ///
+  /// [smsCode] - SMS code entered by user
+  ///
+  /// Returns [UserCredential] on success
+  /// Throws [AuthException] if no verification ID is stored or on failure
+  Future<UserCredential> loginWithStoredVerificationId(String smsCode) async {
+    return signInWithStoredVerificationId(smsCode);
+  }
+
+  /// Get the current stored verification ID
+  ///
+  /// Returns the verification ID from the most recent phone verification,
+  /// or null if no verification is in progress.
+  String? get verificationId => _verificationId;
+
   // ==================== GOOGLE SIGN-IN ====================
 
   /// Sign in with Google
@@ -324,7 +362,7 @@ class AuthService {
             'Password is too weak. Please choose a stronger password.');
       case 'email-already-in-use':
         return AuthException(
-            'An account already exists with this email address.');
+            'An account already exists with this email address. Please try signing in instead or use a different email.');
       case 'invalid-email':
         return AuthException('Please enter a valid email address.');
       case 'user-not-found':

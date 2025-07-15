@@ -1,0 +1,55 @@
+#include "Generated.xcconfig"
+
+// Production Configuration for AndCo School Transport
+
+// App Configuration
+PRODUCT_BUNDLE_IDENTIFIER = com.andco.schooltransport
+PRODUCT_NAME = AndCo School Transport
+DISPLAY_NAME = AndCo School Transport
+
+// Build Settings
+FLUTTER_BUILD_MODE = release
+FLUTTER_TARGET = lib/main.dart
+
+// Code Signing
+CODE_SIGN_IDENTITY = iPhone Distribution
+DEVELOPMENT_TEAM = YOUR_PRODUCTION_TEAM_ID
+PROVISIONING_PROFILE_SPECIFIER = AndCo School Transport Production
+
+// Deployment
+IPHONEOS_DEPLOYMENT_TARGET = 12.0
+TARGETED_DEVICE_FAMILY = 1,2
+
+// API Keys and Configuration
+GOOGLE_MAPS_API_KEY = YOUR_PROD_GOOGLE_MAPS_API_KEY
+
+// Firebase Configuration
+FIREBASE_CONFIG_FILE = GoogleService-Info.plist
+
+// Build Optimizations
+ENABLE_BITCODE = YES
+SWIFT_OPTIMIZATION_LEVEL = -O
+GCC_OPTIMIZATION_LEVEL = s
+SWIFT_COMPILATION_MODE = wholemodule
+
+// Release Settings
+DEBUG_INFORMATION_FORMAT = dwarf-with-dsym
+ENABLE_TESTABILITY = NO
+VALIDATE_PRODUCT = YES
+
+// Preprocessor Macros
+GCC_PREPROCESSOR_DEFINITIONS = $(inherited) PRODUCTION=1
+
+// Security Settings
+ENABLE_HARDENED_RUNTIME = YES
+OTHER_CODE_SIGN_FLAGS = --timestamp
+
+// Other Settings
+CLANG_ENABLE_MODULES = YES
+SWIFT_VERSION = 5.0
+ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES
+
+// App Store Settings
+SKIP_INSTALL = NO
+COPY_PHASE_STRIP = YES
+STRIP_INSTALLED_PRODUCT = YES

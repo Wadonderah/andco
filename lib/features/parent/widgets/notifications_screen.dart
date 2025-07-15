@@ -1,5 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/notification_service.dart';
 import '../../../core/theme/app_colors.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -10,58 +14,19 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  final List<NotificationItem> _notifications = [
-    NotificationItem(
-      id: '1',
-      title: 'Emma Picked Up',
-      message: 'Emma has been picked up from home at 7:45 AM',
-      type: NotificationType.pickup,
-      timestamp: DateTime.now().subtract(const Duration(minutes: 15)),
-      isRead: false,
-      childName: 'Emma Johnson',
-      location: 'Maple Street, Home',
-    ),
-    NotificationItem(
-      id: '2',
-      title: 'Bus Arriving Soon',
-      message: 'Bus BUS-001 will arrive at your stop in 3 minutes',
-      type: NotificationType.eta,
-      timestamp: DateTime.now().subtract(const Duration(minutes: 3)),
-      isRead: false,
-      childName: 'Alex Johnson',
-      location: 'Oak Avenue Stop',
-    ),
-    NotificationItem(
-      id: '3',
-      title: 'Alex Dropped Off',
-      message: 'Alex has been safely dropped off at Lincoln Elementary',
-      type: NotificationType.dropoff,
-      timestamp: DateTime.now().subtract(const Duration(hours: 1)),
-      isRead: true,
-      childName: 'Alex Johnson',
-      location: 'Lincoln Elementary School',
-    ),
-    NotificationItem(
-      id: '4',
-      title: 'Route Delay',
-      message: 'Bus BUS-001 is running 5 minutes late due to traffic',
-      type: NotificationType.delay,
-      timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-      isRead: true,
-      childName: 'Emma Johnson',
-      location: 'Main Street',
-    ),
-    NotificationItem(
-      id: '5',
-      title: 'Emergency Alert Resolved',
-      message: 'The emergency situation has been resolved. All children are safe.',
-      type: NotificationType.emergency,
-      timestamp: DateTime.now().subtract(const Duration(days: 1)),
-      isRead: true,
-      childName: 'All Children',
-      location: 'System Wide',
-    ),
-  ];
+  String? _errorMessage;
+  bool _notificationsEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotifications();
+  }
+
+  void _loadNotifications() {
+    // This will be handled by the StreamBuilder
+    // but we keep this method for error handling
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -141,21 +106,34 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     children: [
                       Text(
                         'Live Alerts Active',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                       ),
-                      Text(
-                        '${_notifications.where((n) => !n.isRead).length} unread notifications',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                      StreamBuilder<List<NotificationItem>>(
+                        stream: NotificationService.instance
+                            .getNotificationsStream(),
+                        builder: (context, snapshot) {
+                          final notifications = snapshot.data ?? [];
+                          final unreadCount =
+                              notifications.where((n) => !n.isRead).length;
+                          return Text(
+                            '$unreadCount unread notifications',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                          );
+                        },
                       ),
                     ],
                   ),
                 ),
                 Switch(
-                  value: true,
+                  value: _notificationsEnabled,
                   onChanged: (value) {
                     _toggleNotifications(value);
                   },
@@ -167,12 +145,32 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
           // Notifications List
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: AppConstants.paddingMedium),
-              itemCount: _notifications.length,
-              itemBuilder: (context, index) {
-                final notification = _notifications[index];
-                return _buildNotificationCard(notification);
+            child: StreamBuilder<List<NotificationItem>>(
+              stream: NotificationService.instance.getNotificationsStream(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasError) {
+                  return _buildErrorState();
+                }
+
+                final notifications = snapshot.data ?? [];
+
+                if (notifications.isEmpty) {
+                  return _buildEmptyState();
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppConstants.paddingMedium),
+                  itemCount: notifications.length,
+                  itemBuilder: (context, index) {
+                    final notification = notifications[index];
+                    return _buildNotificationCard(notification);
+                  },
+                );
               },
             ),
           ),
@@ -184,7 +182,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget _buildNotificationCard(NotificationItem notification) {
     final color = _getNotificationColor(notification.type);
     final icon = _getNotificationIcon(notification.type);
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: AppConstants.paddingSmall),
       color: notification.isRead ? null : AppColors.primary.withOpacity(0.05),
@@ -207,7 +205,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               child: Text(
                 notification.title,
                 style: TextStyle(
-                  fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold,
+                  fontWeight:
+                      notification.isRead ? FontWeight.normal : FontWeight.bold,
                 ),
               ),
             ),
@@ -311,6 +310,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return AppColors.warning;
       case NotificationType.emergency:
         return AppColors.error;
+      case NotificationType.general:
+        return AppColors.primary;
     }
   }
 
@@ -326,13 +327,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return Icons.schedule;
       case NotificationType.emergency:
         return Icons.emergency;
+      case NotificationType.general:
+        return Icons.notifications;
     }
   }
 
   String _formatTime(DateTime timestamp) {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
-    
+
     if (difference.inMinutes < 60) {
       return '${difference.inMinutes}m ago';
     } else if (difference.inHours < 24) {
@@ -342,32 +345,137 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
-  void _markAsRead(NotificationItem notification) {
-    setState(() {
-      notification.isRead = true;
-    });
+  Future<void> _markAsRead(NotificationItem notification) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('notifications')
+          .doc(notification.id)
+          .update({'isRead': true});
+    } catch (e) {
+      debugPrint('Error marking notification as read: $e');
+    }
   }
 
-  void _markAllAsRead() {
-    setState(() {
-      for (var notification in _notifications) {
-        notification.isRead = true;
+  Future<void> _markAllAsRead() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final batch = FirebaseFirestore.instance.batch();
+      final notifications = await FirebaseFirestore.instance
+          .collection('notifications')
+          .where('userId', isEqualTo: user.uid)
+          .where('isRead', isEqualTo: false)
+          .get();
+
+      for (final doc in notifications.docs) {
+        batch.update(doc.reference, {'isRead': true});
       }
+
+      await batch.commit();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('All notifications marked as read'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error marking all notifications as read: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to mark notifications as read'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  void _toggleNotifications(bool enabled) {
+    setState(() {
+      _notificationsEnabled = enabled;
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('All notifications marked as read'),
-        backgroundColor: AppColors.success,
+      SnackBar(
+        content:
+            Text(enabled ? 'Notifications enabled' : 'Notifications disabled'),
+        backgroundColor: enabled ? AppColors.success : AppColors.warning,
       ),
     );
   }
 
-  void _toggleNotifications(bool enabled) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(enabled ? 'Notifications enabled' : 'Notifications disabled'),
-        backgroundColor: enabled ? AppColors.success : AppColors.warning,
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.error_outline,
+            size: 64,
+            color: AppColors.error,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Failed to Load Notifications',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppColors.error,
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _errorMessage ?? 'An unknown error occurred',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: _loadNotifications,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.parentColor,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.notifications_none,
+            size: 64,
+            color: AppColors.textSecondary,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No Notifications',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'You\'ll receive notifications about your child\'s bus trips here',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -395,8 +503,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             Text(
               'Notification Settings',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: AppConstants.paddingLarge),
             _buildSettingTile('Pickup Alerts', true),
@@ -428,24 +536,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Clear All Notifications'),
-        content: const Text('Are you sure you want to clear all notifications?'),
+        content:
+            const Text('Are you sure you want to clear all notifications?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _notifications.clear();
-              });
+            onPressed: () async {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('All notifications cleared'),
-                  backgroundColor: AppColors.info,
-                ),
-              );
+              await _deleteAllNotifications();
             },
             child: const Text('Clear All'),
           ),
@@ -453,34 +554,42 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
     );
   }
-}
 
-enum NotificationType {
-  pickup,
-  dropoff,
-  eta,
-  delay,
-  emergency,
-}
+  Future<void> _deleteAllNotifications() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
 
-class NotificationItem {
-  final String id;
-  final String title;
-  final String message;
-  final NotificationType type;
-  final DateTime timestamp;
-  bool isRead;
-  final String childName;
-  final String location;
+      final batch = FirebaseFirestore.instance.batch();
+      final notifications = await FirebaseFirestore.instance
+          .collection('notifications')
+          .where('userId', isEqualTo: user.uid)
+          .get();
 
-  NotificationItem({
-    required this.id,
-    required this.title,
-    required this.message,
-    required this.type,
-    required this.timestamp,
-    required this.isRead,
-    required this.childName,
-    required this.location,
-  });
+      for (final doc in notifications.docs) {
+        batch.delete(doc.reference);
+      }
+
+      await batch.commit();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('All notifications cleared'),
+            backgroundColor: AppColors.info,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error clearing notifications: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to clear notifications'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
 }

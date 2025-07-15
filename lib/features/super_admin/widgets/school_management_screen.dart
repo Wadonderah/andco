@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 
@@ -51,7 +52,12 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
       joinDate: DateTime(2022, 8, 20),
       lastActivity: DateTime.now().subtract(const Duration(minutes: 30)),
       coordinates: {'lat': 39.7901, 'lng': -89.6440},
-      documents: ['License', 'Insurance', 'Accreditation', 'Safety Certificate'],
+      documents: [
+        'License',
+        'Insurance',
+        'Accreditation',
+        'Safety Certificate'
+      ],
     ),
     School(
       id: '3',
@@ -123,7 +129,7 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
                   ],
                 ),
                 const SizedBox(height: AppConstants.paddingMedium),
-                
+
                 // Search and Filter Row
                 Row(
                   children: [
@@ -135,7 +141,8 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
                           hintText: 'Search schools...',
                           prefixIcon: const Icon(Icons.search),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
+                            borderRadius:
+                                BorderRadius.circular(AppConstants.radiusSmall),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: AppConstants.paddingMedium,
@@ -156,7 +163,8 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
                         decoration: InputDecoration(
                           labelText: 'Status Filter',
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
+                            borderRadius:
+                                BorderRadius.circular(AppConstants.radiusSmall),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: AppConstants.paddingMedium,
@@ -178,25 +186,35 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: AppConstants.paddingMedium),
-                
+
                 // Stats Row
                 Row(
                   children: [
-                    _buildStatCard('Total Schools', _schools.length.toString(), AppColors.primary),
+                    _buildStatCard('Total Schools', _schools.length.toString(),
+                        AppColors.primary),
                     const SizedBox(width: AppConstants.paddingMedium),
-                    _buildStatCard('Active', _getSchoolCount(SchoolStatus.active).toString(), AppColors.success),
+                    _buildStatCard(
+                        'Active',
+                        _getSchoolCount(SchoolStatus.active).toString(),
+                        AppColors.success),
                     const SizedBox(width: AppConstants.paddingMedium),
-                    _buildStatCard('Pending', _getSchoolCount(SchoolStatus.pending).toString(), AppColors.warning),
+                    _buildStatCard(
+                        'Pending',
+                        _getSchoolCount(SchoolStatus.pending).toString(),
+                        AppColors.warning),
                     const SizedBox(width: AppConstants.paddingMedium),
-                    _buildStatCard('Suspended', _getSchoolCount(SchoolStatus.suspended).toString(), AppColors.error),
+                    _buildStatCard(
+                        'Suspended',
+                        _getSchoolCount(SchoolStatus.suspended).toString(),
+                        AppColors.error),
                   ],
                 ),
               ],
             ),
           ),
-          
+
           // Tabs
           Container(
             color: Colors.white,
@@ -212,7 +230,7 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
               ],
             ),
           ),
-          
+
           // Content
           Expanded(
             child: TabBarView(
@@ -263,7 +281,11 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
 
   Widget _buildSchoolsList() {
     final filteredSchools = _getFilteredSchools();
-    
+
+    if (filteredSchools.isEmpty) {
+      return _buildEmptySchoolsState();
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.all(AppConstants.paddingMedium),
       itemCount: filteredSchools.length,
@@ -271,6 +293,65 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
         final school = filteredSchools[index];
         return _buildSchoolCard(school);
       },
+    );
+  }
+
+  Widget _buildEmptySchoolsState() {
+    final isSearching = _searchController.text.isNotEmpty;
+    final hasStatusFilter = _selectedStatus != SchoolStatus.all;
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            isSearching || hasStatusFilter
+                ? Icons.search_off
+                : Icons.school_outlined,
+            size: 64,
+            color: AppColors.textSecondary,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            isSearching || hasStatusFilter
+                ? 'No Schools Found'
+                : 'No Schools Yet',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isSearching
+                ? 'Try adjusting your search terms or filters'
+                : hasStatusFilter
+                    ? 'No schools match the selected status'
+                    : 'Schools will appear here once they are added to the system',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          if (isSearching || hasStatusFilter) ...[
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                _searchController.clear();
+                setState(() {
+                  _selectedStatus = SchoolStatus.all;
+                });
+              },
+              icon: const Icon(Icons.clear),
+              label: const Text('Clear Filters'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -288,7 +369,8 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
                   backgroundColor: _getStatusColor(school.status),
                   child: Text(
                     school.name[0],
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ),
                 const SizedBox(width: AppConstants.paddingMedium),
@@ -298,7 +380,8 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
                     children: [
                       Text(
                         school.name,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       Text(
                         school.address,
@@ -306,16 +389,20 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
                       ),
                       Text(
                         'Principal: ${school.principalName}',
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                        style: const TextStyle(
+                            color: AppColors.textSecondary, fontSize: 14),
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(school.status).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
+                    color:
+                        _getStatusColor(school.status).withValues(alpha: 0.1),
+                    borderRadius:
+                        BorderRadius.circular(AppConstants.radiusSmall),
                   ),
                   child: Text(
                     school.status.displayName,
@@ -329,21 +416,24 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
               ],
             ),
             const SizedBox(height: AppConstants.paddingMedium),
-            
+
             // School Stats
             Row(
               children: [
-                _buildSchoolStat(Icons.people, '${school.studentCount} Students'),
+                _buildSchoolStat(
+                    Icons.people, '${school.studentCount} Students'),
                 const SizedBox(width: AppConstants.paddingLarge),
-                _buildSchoolStat(Icons.directions_bus, '${school.busCount} Buses'),
+                _buildSchoolStat(
+                    Icons.directions_bus, '${school.busCount} Buses'),
                 const SizedBox(width: AppConstants.paddingLarge),
                 _buildSchoolStat(Icons.person, '${school.driverCount} Drivers'),
                 const SizedBox(width: AppConstants.paddingLarge),
-                _buildSchoolStat(Icons.attach_money, '\$${school.monthlyRevenue.toStringAsFixed(0)}/mo'),
+                _buildSchoolStat(Icons.attach_money,
+                    '\$${school.monthlyRevenue.toStringAsFixed(0)}/mo'),
               ],
             ),
             const SizedBox(height: AppConstants.paddingMedium),
-            
+
             // Action Buttons
             Row(
               children: [
@@ -368,14 +458,16 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
                     onPressed: () => _suspendSchool(school),
                     icon: const Icon(Icons.pause_circle_outline),
                     label: const Text('Suspend'),
-                    style: TextButton.styleFrom(foregroundColor: AppColors.warning),
+                    style: TextButton.styleFrom(
+                        foregroundColor: AppColors.warning),
                   )
                 else if (school.status == SchoolStatus.suspended)
                   TextButton.icon(
                     onPressed: () => _activateSchool(school),
                     icon: const Icon(Icons.play_circle_outline),
                     label: const Text('Activate'),
-                    style: TextButton.styleFrom(foregroundColor: AppColors.success),
+                    style: TextButton.styleFrom(
+                        foregroundColor: AppColors.success),
                   ),
               ],
             ),
@@ -409,13 +501,14 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: AppConstants.paddingLarge),
-          
           Expanded(
             child: GridView.count(
               crossAxisCount: 2,
               crossAxisSpacing: AppConstants.paddingMedium,
               mainAxisSpacing: AppConstants.paddingMedium,
-              children: _schools.map((school) => _buildPerformanceCard(school)).toList(),
+              children: _schools
+                  .map((school) => _buildPerformanceCard(school))
+                  .toList(),
             ),
           ),
         ],
@@ -426,7 +519,7 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
   Widget _buildPerformanceCard(School school) {
     final efficiency = (school.studentCount / school.busCount).round();
     final utilization = (school.driverCount / school.busCount * 100).round();
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppConstants.paddingMedium),
@@ -440,19 +533,22 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: AppConstants.paddingMedium),
-            
             _buildMetricRow('Students per Bus', '$efficiency'),
             _buildMetricRow('Driver Utilization', '$utilization%'),
-            _buildMetricRow('Revenue per Student', '\$${(school.monthlyRevenue / school.studentCount).toStringAsFixed(2)}'),
-            _buildMetricRow('Last Activity', _formatLastActivity(school.lastActivity)),
-            
+            _buildMetricRow('Revenue per Student',
+                '\$${(school.monthlyRevenue / school.studentCount).toStringAsFixed(2)}'),
+            _buildMetricRow(
+                'Last Activity', _formatLastActivity(school.lastActivity)),
             const Spacer(),
             LinearProgressIndicator(
               value: utilization / 100,
               backgroundColor: AppColors.border,
               valueColor: AlwaysStoppedAnimation<Color>(
-                utilization > 80 ? AppColors.success : 
-                utilization > 60 ? AppColors.warning : AppColors.error,
+                utilization > 80
+                    ? AppColors.success
+                    : utilization > 60
+                        ? AppColors.warning
+                        : AppColors.error,
               ),
             ),
           ],
@@ -469,7 +565,8 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
         children: [
           Text(
             label,
-            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            style:
+                const TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
           Text(
             value,
@@ -481,9 +578,10 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
   }
 
   Widget _buildFinancialTab() {
-    final totalRevenue = _schools.fold<double>(0, (sum, school) => sum + school.monthlyRevenue);
+    final totalRevenue =
+        _schools.fold<double>(0, (sum, school) => sum + school.monthlyRevenue);
     final averageRevenue = totalRevenue / _schools.length;
-    
+
     return Container(
       padding: const EdgeInsets.all(AppConstants.paddingLarge),
       child: Column(
@@ -498,30 +596,38 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
               const Spacer(),
               Text(
                 'Total Monthly Revenue: \$${totalRevenue.toStringAsFixed(2)}',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.success),
+                style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.success),
               ),
             ],
           ),
           const SizedBox(height: AppConstants.paddingLarge),
-          
+
           // Revenue Summary Cards
           Row(
             children: [
               Expanded(
-                child: _buildRevenueCard('Total Revenue', '\$${totalRevenue.toStringAsFixed(2)}', AppColors.success),
+                child: _buildRevenueCard('Total Revenue',
+                    '\$${totalRevenue.toStringAsFixed(2)}', AppColors.success),
               ),
               const SizedBox(width: AppConstants.paddingMedium),
               Expanded(
-                child: _buildRevenueCard('Average Revenue', '\$${averageRevenue.toStringAsFixed(2)}', AppColors.info),
+                child: _buildRevenueCard('Average Revenue',
+                    '\$${averageRevenue.toStringAsFixed(2)}', AppColors.info),
               ),
               const SizedBox(width: AppConstants.paddingMedium),
               Expanded(
-                child: _buildRevenueCard('Active Schools', '${_getSchoolCount(SchoolStatus.active)}', AppColors.primary),
+                child: _buildRevenueCard(
+                    'Active Schools',
+                    '${_getSchoolCount(SchoolStatus.active)}',
+                    AppColors.primary),
               ),
             ],
           ),
           const SizedBox(height: AppConstants.paddingLarge),
-          
+
           // School Revenue List
           Expanded(
             child: ListView.builder(
@@ -573,21 +679,27 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: _getStatusColor(school.status),
-          child: Text(school.name[0], style: const TextStyle(color: Colors.white)),
+          child:
+              Text(school.name[0], style: const TextStyle(color: Colors.white)),
         ),
         title: Text(school.name),
-        subtitle: Text('${school.subscriptionPlan} Plan • ${school.studentCount} students'),
+        subtitle: Text(
+            '${school.subscriptionPlan} Plan • ${school.studentCount} students'),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
               '\$${school.monthlyRevenue.toStringAsFixed(2)}',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.success),
+              style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.success),
             ),
             Text(
               'per month',
-              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              style:
+                  const TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
           ],
         ),
@@ -601,10 +713,13 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
       final matchesSearch = _searchQuery.isEmpty ||
           school.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           school.address.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          school.principalName.toLowerCase().contains(_searchQuery.toLowerCase());
-      
-      final matchesStatus = _selectedStatus == SchoolStatus.all || school.status == _selectedStatus;
-      
+          school.principalName
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase());
+
+      final matchesStatus = _selectedStatus == SchoolStatus.all ||
+          school.status == _selectedStatus;
+
       return matchesSearch && matchesStatus;
     }).toList();
   }
@@ -629,7 +744,7 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
   String _formatLastActivity(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
-    
+
     if (difference.inMinutes < 60) {
       return '${difference.inMinutes}m ago';
     } else if (difference.inHours < 24) {
@@ -645,7 +760,8 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Add New School'),
-        content: const Text('Add new school functionality would be implemented here.'),
+        content: const Text(
+            'Add new school functionality would be implemented here.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -704,7 +820,8 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Manage Users - ${school.name}'),
-        content: Text('User management for ${school.name} would be shown here.'),
+        content:
+            Text('User management for ${school.name} would be shown here.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -731,7 +848,8 @@ class _SchoolManagementScreenState extends State<SchoolManagementScreen>
               setState(() {
                 final index = _schools.indexWhere((s) => s.id == school.id);
                 if (index != -1) {
-                  _schools[index] = school.copyWith(status: SchoolStatus.suspended);
+                  _schools[index] =
+                      school.copyWith(status: SchoolStatus.suspended);
                 }
               });
               Navigator.pop(context);

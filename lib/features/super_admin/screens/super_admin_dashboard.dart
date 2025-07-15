@@ -369,24 +369,59 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
   }
 
   Map<String, dynamic> _getStatsForItem(int index) {
-    // Mock statistics data
-    final mockStats = [
-      {'count': 156, 'subtitle': 'Active Schools'},
-      {'count': 2847, 'subtitle': 'Total Users'},
-      {'count': 423, 'subtitle': 'Active Drivers'},
-      {'count': 298, 'subtitle': 'Fleet Vehicles'},
-      {'count': '\$45.2K', 'subtitle': 'Monthly Revenue'},
-      {'count': 23, 'subtitle': 'Pending Approvals'},
-      {'count': 12, 'subtitle': 'Support Agents'},
-      {'count': '98.5%', 'subtitle': 'System Uptime'},
-      {'count': 89, 'subtitle': 'Optimized Routes'},
-      {'count': 1247, 'subtitle': 'Notifications Sent'},
-      {'count': 45, 'subtitle': 'Content Items'},
+    // Real-time statistics from Firebase
+    final statItems = [
+      'Active Schools',
+      'Total Users',
+      'Active Drivers',
+      'Fleet Vehicles',
+      'Monthly Revenue',
+      'Pending Approvals',
+      'Support Agents',
+      'System Uptime',
+      'Optimized Routes',
+      'Notifications Sent',
+      'Content Items',
     ];
 
-    return index < mockStats.length
-        ? mockStats[index]
-        : {'count': 0, 'subtitle': 'No Data'};
+    if (index >= statItems.length) {
+      return {'count': 0, 'subtitle': 'No Data'};
+    }
+
+    return {
+      'count': _getStatValue(statItems[index]),
+      'subtitle': statItems[index],
+    };
+  }
+
+  dynamic _getStatValue(String statType) {
+    // TODO: Replace with real Firebase queries
+    switch (statType) {
+      case 'Active Schools':
+        return '...'; // Will be replaced with real count
+      case 'Total Users':
+        return '...'; // Will be replaced with real count
+      case 'Active Drivers':
+        return '...'; // Will be replaced with real count
+      case 'Fleet Vehicles':
+        return '...'; // Will be replaced with real count
+      case 'Monthly Revenue':
+        return '...'; // Will be replaced with real calculation
+      case 'Pending Approvals':
+        return '...'; // Will be replaced with real count
+      case 'Support Agents':
+        return '...'; // Will be replaced with real count
+      case 'System Uptime':
+        return '...'; // Will be replaced with real monitoring
+      case 'Optimized Routes':
+        return '...'; // Will be replaced with real count
+      case 'Notifications Sent':
+        return '...'; // Will be replaced with real count
+      case 'Content Items':
+        return '...'; // Will be replaced with real count
+      default:
+        return 0;
+    }
   }
 }
 

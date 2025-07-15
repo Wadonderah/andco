@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_constants.dart';
@@ -348,6 +349,10 @@ class _DriverManagementScreenState extends State<DriverManagementScreen>
   Widget _buildDriversList() {
     final filteredDrivers = _getFilteredDrivers();
 
+    if (filteredDrivers.isEmpty) {
+      return _buildEmptyDriversState();
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.all(AppConstants.paddingMedium),
       itemCount: filteredDrivers.length,
@@ -355,6 +360,74 @@ class _DriverManagementScreenState extends State<DriverManagementScreen>
         final driver = filteredDrivers[index];
         return _buildDriverCard(driver);
       },
+    );
+  }
+
+  Widget _buildEmptyDriversState() {
+    final isSearching = _searchController.text.isNotEmpty;
+    final hasStatusFilter = _selectedStatus != DriverStatus.all;
+    final hasVerificationFilter =
+        _selectedVerification != DriverVerificationStatus.all;
+    final hasFilters = isSearching || hasStatusFilter || hasVerificationFilter;
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            hasFilters ? Icons.search_off : Icons.person_outline,
+            size: 64,
+            color: AppColors.textSecondary,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            hasFilters ? 'No Drivers Found' : 'No Drivers Yet',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            hasFilters
+                ? 'Try adjusting your search terms or filters'
+                : 'Drivers will appear here once they are added to the system',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          if (hasFilters) ...[
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                _searchController.clear();
+                setState(() {
+                  _selectedStatus = DriverStatus.all;
+                  _selectedVerification = DriverVerificationStatus.all;
+                });
+              },
+              icon: const Icon(Icons.clear),
+              label: const Text('Clear Filters'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.driverColor,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _addNewDriver,
+              icon: const Icon(Icons.add),
+              label: const Text('Add Driver'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.driverColor,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -1112,19 +1185,17 @@ class _DriverManagementScreenState extends State<DriverManagementScreen>
   void _editDriver(Driver driver) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Edit ${driver.name}'),
-        content: const Text('Edit driver form would be implemented here.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Save'),
-          ),
-        ],
+      builder: (context) => _EditDriverDialog(
+        driver: driver,
+        onDriverUpdated: () {
+          setState(() {});
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Driver updated successfully'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        },
       ),
     );
   }
@@ -1296,11 +1367,264 @@ class _DriverManagementScreenState extends State<DriverManagementScreen>
     );
   }
 
+  void _addNewDriver() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add New Driver'),
+        content: const Text(
+            'Add new driver functionality would be implemented here with a comprehensive form.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Add driver functionality will be implemented'),
+                  backgroundColor: AppColors.info,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.driverColor,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+}
+
+class _EditDriverDialog extends StatefulWidget {
+  final Driver driver;
+  final VoidCallback onDriverUpdated;
+
+  const _EditDriverDialog({
+    required this.driver,
+    required this.onDriverUpdated,
+  });
+
+  @override
+  State<_EditDriverDialog> createState() => _EditDriverDialogState();
+}
+
+class _EditDriverDialogState extends State<_EditDriverDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameController;
+  late final TextEditingController _emailController;
+  late final TextEditingController _phoneController;
+  late final TextEditingController _licenseController;
+  late final TextEditingController _emergencyContactController;
+  late final TextEditingController _addressController;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.driver.name);
+    _emailController = TextEditingController(text: widget.driver.email);
+    _phoneController = TextEditingController(text: widget.driver.phone);
+    _licenseController =
+        TextEditingController(text: widget.driver.licenseNumber);
+    _emergencyContactController =
+        TextEditingController(text: widget.driver.emergencyContact);
+    _addressController = TextEditingController(text: widget.driver.address);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _licenseController.dispose();
+    _emergencyContactController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Edit ${widget.driver.name}'),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Full Name',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.person),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter driver name';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.email),
+                ),
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter email';
+                  }
+                  if (!value.contains('@')) {
+                    return 'Please enter a valid email';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _phoneController,
+                decoration: const InputDecoration(
+                  labelText: 'Phone Number',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.phone),
+                ),
+                keyboardType: TextInputType.phone,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter phone number';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _licenseController,
+                decoration: const InputDecoration(
+                  labelText: 'License Number',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.credit_card),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter license number';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _emergencyContactController,
+                decoration: const InputDecoration(
+                  labelText: 'Emergency Contact',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.emergency),
+                ),
+                keyboardType: TextInputType.phone,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter emergency contact';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _addressController,
+                decoration: const InputDecoration(
+                  labelText: 'Address',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.location_on),
+                ),
+                maxLines: 2,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter address';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _isLoading ? null : _updateDriver,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.driverColor,
+            foregroundColor: Colors.white,
+          ),
+          child: _isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Update'),
+        ),
+      ],
+    );
+  }
+
+  void _updateDriver() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Update driver data in Firestore
+      final updatedData = {
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'licenseNumber': _licenseController.text.trim(),
+        'emergencyContact': _emergencyContactController.text.trim(),
+        'address': _addressController.text.trim(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      await FirebaseFirestore.instance
+          .collection('drivers')
+          .doc(widget.driver.id)
+          .update(updatedData);
+
+      if (mounted) {
+        Navigator.pop(context);
+        widget.onDriverUpdated();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update driver: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 }
 

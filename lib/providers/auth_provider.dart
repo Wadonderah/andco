@@ -107,6 +107,7 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
     required void Function(FirebaseAuthException) onVerificationFailed,
     required void Function(String, int?) onCodeSent,
     required void Function(String) onCodeAutoRetrievalTimeout,
+    int? forceResendingToken,
   }) async {
     try {
       await _authService.verifyPhoneNumber(
@@ -115,6 +116,7 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
         onVerificationFailed: onVerificationFailed,
         onCodeSent: onCodeSent,
         onCodeAutoRetrievalTimeout: onCodeAutoRetrievalTimeout,
+        forceResendingToken: forceResendingToken,
       );
     } catch (e) {
       rethrow;

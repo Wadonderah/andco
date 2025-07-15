@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 
@@ -9,8 +10,7 @@ class CMSScreen extends StatefulWidget {
   State<CMSScreen> createState() => _CMSScreenState();
 }
 
-class _CMSScreenState extends State<CMSScreen>
-    with TickerProviderStateMixin {
+class _CMSScreenState extends State<CMSScreen> with TickerProviderStateMixin {
   late TabController _tabController;
 
   final List<CMSContent> _content = [
@@ -19,7 +19,8 @@ class _CMSScreenState extends State<CMSScreen>
       title: 'How to Track Your Child\'s Bus',
       type: ContentType.faq,
       category: 'Bus Tracking',
-      content: 'To track your child\'s bus, open the app and navigate to the "Track Bus" section...',
+      content:
+          'To track your child\'s bus, open the app and navigate to the "Track Bus" section...',
       status: ContentStatus.published,
       language: 'English',
       author: 'Admin',
@@ -33,7 +34,8 @@ class _CMSScreenState extends State<CMSScreen>
       title: 'Privacy Policy',
       type: ContentType.policy,
       category: 'Legal',
-      content: 'This Privacy Policy describes how we collect, use, and protect your information...',
+      content:
+          'This Privacy Policy describes how we collect, use, and protect your information...',
       status: ContentStatus.published,
       language: 'English',
       author: 'Legal Team',
@@ -47,7 +49,8 @@ class _CMSScreenState extends State<CMSScreen>
       title: 'Getting Started Guide',
       type: ContentType.helpDoc,
       category: 'Onboarding',
-      content: 'Welcome to the School Bus Tracking System! This guide will help you get started...',
+      content:
+          'Welcome to the School Bus Tracking System! This guide will help you get started...',
       status: ContentStatus.draft,
       language: 'English',
       author: 'Support Team',
@@ -108,23 +111,27 @@ class _CMSScreenState extends State<CMSScreen>
                   ],
                 ),
                 const SizedBox(height: AppConstants.paddingMedium),
-                
+
                 // CMS Stats
                 Row(
                   children: [
-                    _buildStatCard('Total Content', _content.length.toString(), AppColors.indigo),
+                    _buildStatCard('Total Content', _content.length.toString(),
+                        AppColors.indigo),
                     const SizedBox(width: AppConstants.paddingMedium),
-                    _buildStatCard('Published', _getPublishedCount().toString(), AppColors.success),
+                    _buildStatCard('Published', _getPublishedCount().toString(),
+                        AppColors.success),
                     const SizedBox(width: AppConstants.paddingMedium),
-                    _buildStatCard('Drafts', _getDraftCount().toString(), AppColors.warning),
+                    _buildStatCard('Drafts', _getDraftCount().toString(),
+                        AppColors.warning),
                     const SizedBox(width: AppConstants.paddingMedium),
-                    _buildStatCard('Total Views', _getTotalViews().toString(), AppColors.info),
+                    _buildStatCard('Total Views', _getTotalViews().toString(),
+                        AppColors.info),
                   ],
                 ),
               ],
             ),
           ),
-          
+
           // Tabs
           Container(
             color: Colors.white,
@@ -142,7 +149,7 @@ class _CMSScreenState extends State<CMSScreen>
               ],
             ),
           ),
-          
+
           // Content
           Expanded(
             child: TabBarView(
@@ -203,7 +210,6 @@ class _CMSScreenState extends State<CMSScreen>
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: AppConstants.paddingLarge),
-          
           Expanded(
             child: ListView.builder(
               itemCount: _content.length,
@@ -232,7 +238,8 @@ class _CMSScreenState extends State<CMSScreen>
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: _getTypeColor(content.type).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
+                    borderRadius:
+                        BorderRadius.circular(AppConstants.radiusSmall),
                   ),
                   child: Icon(
                     _getTypeIcon(content.type),
@@ -247,7 +254,8 @@ class _CMSScreenState extends State<CMSScreen>
                     children: [
                       Text(
                         content.title,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       Text(
                         '${content.type.displayName} • ${content.category}',
@@ -255,16 +263,20 @@ class _CMSScreenState extends State<CMSScreen>
                       ),
                       Text(
                         'By ${content.author} • v${content.version} • ${content.views} views',
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                        style: const TextStyle(
+                            color: AppColors.textSecondary, fontSize: 12),
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(content.status).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
+                    color:
+                        _getStatusColor(content.status).withValues(alpha: 0.1),
+                    borderRadius:
+                        BorderRadius.circular(AppConstants.radiusSmall),
                   ),
                   child: Text(
                     content.status.displayName,
@@ -278,7 +290,6 @@ class _CMSScreenState extends State<CMSScreen>
               ],
             ),
             const SizedBox(height: AppConstants.paddingMedium),
-            
             Container(
               padding: const EdgeInsets.all(AppConstants.paddingMedium),
               decoration: BoxDecoration(
@@ -286,25 +297,25 @@ class _CMSScreenState extends State<CMSScreen>
                 borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
               ),
               child: Text(
-                content.content.length > 150 
+                content.content.length > 150
                     ? '${content.content.substring(0, 150)}...'
                     : content.content,
                 style: const TextStyle(color: AppColors.textSecondary),
               ),
             ),
             const SizedBox(height: AppConstants.paddingMedium),
-            
             Row(
               children: [
-                _buildContentMetric('Created', _formatDate(content.createdDate)),
+                _buildContentMetric(
+                    'Created', _formatDate(content.createdDate)),
                 const SizedBox(width: AppConstants.paddingLarge),
-                _buildContentMetric('Modified', _formatDate(content.lastModified)),
+                _buildContentMetric(
+                    'Modified', _formatDate(content.lastModified)),
                 const SizedBox(width: AppConstants.paddingLarge),
                 _buildContentMetric('Language', content.language),
               ],
             ),
             const SizedBox(height: AppConstants.paddingMedium),
-            
             Row(
               children: [
                 TextButton.icon(
@@ -322,7 +333,8 @@ class _CMSScreenState extends State<CMSScreen>
                     onPressed: () => _publishContent(content),
                     icon: const Icon(Icons.publish),
                     label: const Text('Publish'),
-                    style: TextButton.styleFrom(foregroundColor: AppColors.success),
+                    style: TextButton.styleFrom(
+                        foregroundColor: AppColors.success),
                   ),
                 const Spacer(),
                 TextButton.icon(
@@ -361,12 +373,14 @@ class _CMSScreenState extends State<CMSScreen>
   }
 
   Widget _buildHelpDocsTab() {
-    final helpDocs = _content.where((c) => c.type == ContentType.helpDoc).toList();
+    final helpDocs =
+        _content.where((c) => c.type == ContentType.helpDoc).toList();
     return _buildContentTypeTab('Help Documentation', helpDocs);
   }
 
   Widget _buildPoliciesTab() {
-    final policies = _content.where((c) => c.type == ContentType.policy).toList();
+    final policies =
+        _content.where((c) => c.type == ContentType.policy).toList();
     return _buildContentTypeTab('Policies', policies);
   }
 
@@ -381,15 +395,9 @@ class _CMSScreenState extends State<CMSScreen>
             style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: AppConstants.paddingLarge),
-          
           Expanded(
             child: contentList.isEmpty
-                ? Center(
-                    child: Text(
-                      'No $title available',
-                      style: const TextStyle(color: AppColors.textSecondary),
-                    ),
-                  )
+                ? _buildEmptyContentState(title)
                 : ListView.builder(
                     itemCount: contentList.length,
                     itemBuilder: (context, index) {
@@ -453,13 +461,68 @@ class _CMSScreenState extends State<CMSScreen>
     return '${date.day}/${date.month}/${date.year}';
   }
 
+  Widget _buildEmptyContentState(String contentType) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            _getContentTypeIcon(contentType),
+            size: 64,
+            color: AppColors.textSecondary,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No $contentType Available',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Create your first ${contentType.toLowerCase()} to get started',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: _createContent,
+            icon: const Icon(Icons.add),
+            label: Text('Create $contentType'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getContentTypeIcon(String contentType) {
+    switch (contentType.toLowerCase()) {
+      case 'faqs':
+        return Icons.help_outline;
+      case 'help docs':
+        return Icons.description_outlined;
+      case 'policies':
+        return Icons.policy_outlined;
+      default:
+        return Icons.article_outlined;
+    }
+  }
+
   // Action Methods
   void _createContent() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Create New Content'),
-        content: const Text('Content creation form with rich text editor would be implemented here.'),
+        content: const Text(
+            'Content creation form with rich text editor would be implemented here.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -479,7 +542,8 @@ class _CMSScreenState extends State<CMSScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Edit ${content.title}'),
-        content: const Text('Content editing form with rich text editor would be implemented here.'),
+        content: const Text(
+            'Content editing form with rich text editor would be implemented here.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -499,7 +563,8 @@ class _CMSScreenState extends State<CMSScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Version History - ${content.title}'),
-        content: const Text('Version history and comparison would be shown here.'),
+        content:
+            const Text('Version history and comparison would be shown here.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

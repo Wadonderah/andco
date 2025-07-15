@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 
@@ -12,7 +13,7 @@ class SafetyChecksScreen extends StatefulWidget {
 class _SafetyChecksScreenState extends State<SafetyChecksScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
-  
+
   final List<SafetyCheckItem> _preTripChecks = [
     SafetyCheckItem(
       id: 'exterior_inspection',
@@ -152,10 +153,12 @@ class _SafetyChecksScreenState extends State<SafetyChecksScreen>
   }
 
   Widget _buildPreTripTab() {
-    final completedChecks = _preTripChecks.where((check) => check.status == CheckStatus.completed).length;
+    final completedChecks = _preTripChecks
+        .where((check) => check.status == CheckStatus.completed)
+        .length;
     final totalChecks = _preTripChecks.length;
     final progress = totalChecks > 0 ? completedChecks / totalChecks : 0.0;
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppConstants.paddingMedium),
       child: Column(
@@ -180,39 +183,40 @@ class _SafetyChecksScreenState extends State<SafetyChecksScreen>
                       Text(
                         'Pre-Trip Inspection',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
                       const Spacer(),
                       Text(
                         '$completedChecks/$totalChecks',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.driverColor,
-                        ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.driverColor,
+                                ),
                       ),
                     ],
                   ),
-                  
                   const SizedBox(height: AppConstants.paddingMedium),
-                  
                   LinearProgressIndicator(
                     value: progress,
                     backgroundColor: AppColors.surfaceVariant,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      progress == 1.0 ? AppColors.success : AppColors.driverColor,
+                      progress == 1.0
+                          ? AppColors.success
+                          : AppColors.driverColor,
                     ),
                   ),
-                  
                   const SizedBox(height: AppConstants.paddingSmall),
-                  
                   Text(
-                    progress == 1.0 
+                    progress == 1.0
                         ? 'All checks completed! Ready to start route.'
                         : 'Complete all required checks before starting route.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: progress == 1.0 ? AppColors.success : AppColors.textSecondary,
-                    ),
+                          color: progress == 1.0
+                              ? AppColors.success
+                              : AppColors.textSecondary,
+                        ),
                   ),
                 ],
               ),
@@ -225,12 +229,12 @@ class _SafetyChecksScreenState extends State<SafetyChecksScreen>
           Text(
             'Safety Checklist',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: AppConstants.paddingMedium),
 
-          ..._preTripChecks.map((check) => _buildCheckItem(check, true)).toList(),
+          ..._preTripChecks.map((check) => _buildCheckItem(check, true)),
 
           const SizedBox(height: AppConstants.paddingLarge),
 
@@ -278,10 +282,12 @@ class _SafetyChecksScreenState extends State<SafetyChecksScreen>
   }
 
   Widget _buildPostTripTab() {
-    final completedChecks = _postTripChecks.where((check) => check.status == CheckStatus.completed).length;
+    final completedChecks = _postTripChecks
+        .where((check) => check.status == CheckStatus.completed)
+        .length;
     final totalChecks = _postTripChecks.length;
     final progress = totalChecks > 0 ? completedChecks / totalChecks : 0.0;
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppConstants.paddingMedium),
       child: Column(
@@ -306,22 +312,21 @@ class _SafetyChecksScreenState extends State<SafetyChecksScreen>
                       Text(
                         'Post-Trip Inspection',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
                       const Spacer(),
                       Text(
                         '$completedChecks/$totalChecks',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.info,
-                        ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.info,
+                                ),
                       ),
                     ],
                   ),
-                  
                   const SizedBox(height: AppConstants.paddingMedium),
-                  
                   LinearProgressIndicator(
                     value: progress,
                     backgroundColor: AppColors.surfaceVariant,
@@ -329,16 +334,16 @@ class _SafetyChecksScreenState extends State<SafetyChecksScreen>
                       progress == 1.0 ? AppColors.success : AppColors.info,
                     ),
                   ),
-                  
                   const SizedBox(height: AppConstants.paddingSmall),
-                  
                   Text(
-                    progress == 1.0 
+                    progress == 1.0
                         ? 'All checks completed! Route officially ended.'
                         : 'Complete all required checks to end route.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: progress == 1.0 ? AppColors.success : AppColors.textSecondary,
-                    ),
+                          color: progress == 1.0
+                              ? AppColors.success
+                              : AppColors.textSecondary,
+                        ),
                   ),
                 ],
               ),
@@ -351,12 +356,12 @@ class _SafetyChecksScreenState extends State<SafetyChecksScreen>
           Text(
             'Post-Trip Checklist',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: AppConstants.paddingMedium),
 
-          ..._postTripChecks.map((check) => _buildCheckItem(check, false)).toList(),
+          ..._postTripChecks.map((check) => _buildCheckItem(check, false)),
 
           const SizedBox(height: AppConstants.paddingLarge),
 
@@ -383,7 +388,7 @@ class _SafetyChecksScreenState extends State<SafetyChecksScreen>
   Widget _buildCheckItem(SafetyCheckItem check, bool isPreTrip) {
     final isCompleted = check.status == CheckStatus.completed;
     final color = isCompleted ? AppColors.success : AppColors.textSecondary;
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: AppConstants.paddingMedium),
       child: Padding(
@@ -400,7 +405,9 @@ class _SafetyChecksScreenState extends State<SafetyChecksScreen>
                   decoration: BoxDecoration(
                     color: isCompleted ? AppColors.success : Colors.transparent,
                     border: Border.all(
-                      color: isCompleted ? AppColors.success : AppColors.textSecondary,
+                      color: isCompleted
+                          ? AppColors.success
+                          : AppColors.textSecondary,
                       width: 2,
                     ),
                     shape: BoxShape.circle,
@@ -423,15 +430,21 @@ class _SafetyChecksScreenState extends State<SafetyChecksScreen>
                           Expanded(
                             child: Text(
                               check.title,
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                decoration: isCompleted ? TextDecoration.lineThrough : null,
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    decoration: isCompleted
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                  ),
                             ),
                           ),
                           if (check.isRequired)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: AppColors.error.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(10),
@@ -450,9 +463,11 @@ class _SafetyChecksScreenState extends State<SafetyChecksScreen>
                       Text(
                         check.description,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
-                          decoration: isCompleted ? TextDecoration.lineThrough : null,
-                        ),
+                              color: AppColors.textSecondary,
+                              decoration: isCompleted
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                            ),
                       ),
                     ],
                   ),
@@ -466,10 +481,12 @@ class _SafetyChecksScreenState extends State<SafetyChecksScreen>
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppColors.info.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
+                    borderRadius:
+                        BorderRadius.circular(AppConstants.radiusSmall),
                   ),
                   child: Text(
                     check.category,
@@ -483,10 +500,12 @@ class _SafetyChecksScreenState extends State<SafetyChecksScreen>
                 if (check.requiresPhoto) ...[
                   const SizedBox(width: AppConstants.paddingSmall),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: AppColors.warning.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
+                      borderRadius:
+                          BorderRadius.circular(AppConstants.radiusSmall),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -588,15 +607,15 @@ class _SafetyChecksScreenState extends State<SafetyChecksScreen>
           Text(
             'Safety Check History',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: AppConstants.paddingSmall),
           Text(
             'View previous safety inspection records',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.textSecondary,
-            ),
+                  color: AppColors.textSecondary,
+                ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppConstants.paddingLarge),
@@ -617,7 +636,7 @@ class _SafetyChecksScreenState extends State<SafetyChecksScreen>
     setState(() {
       check.status = CheckStatus.completed;
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${check.title} completed'),
@@ -630,7 +649,7 @@ class _SafetyChecksScreenState extends State<SafetyChecksScreen>
     setState(() {
       check.status = CheckStatus.pending;
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('${check.title} marked as pending')),
     );
@@ -648,7 +667,7 @@ class _SafetyChecksScreenState extends State<SafetyChecksScreen>
         check.status = CheckStatus.pending;
       }
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Pre-trip checks reset')),
     );
@@ -660,7 +679,7 @@ class _SafetyChecksScreenState extends State<SafetyChecksScreen>
         check.status = CheckStatus.completed;
       }
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('All pre-trip checks completed'),
@@ -688,14 +707,96 @@ class _SafetyChecksScreenState extends State<SafetyChecksScreen>
   }
 
   void _showChecklistSettings() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Checklist settings will be implemented')),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Checklist Settings'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SwitchListTile(
+              title: const Text('Require Photos'),
+              subtitle: const Text('Require photos for each check item'),
+              value: true,
+              onChanged: (value) {},
+            ),
+            SwitchListTile(
+              title: const Text('GPS Verification'),
+              subtitle: const Text('Verify location during checks'),
+              value: false,
+              onChanged: (value) {},
+            ),
+            SwitchListTile(
+              title: const Text('Offline Mode'),
+              subtitle: const Text('Allow checks without internet'),
+              value: true,
+              onChanged: (value) {},
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Settings updated successfully'),
+                  backgroundColor: AppColors.success,
+                ),
+              );
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
     );
   }
 
   void _viewHistory() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Safety check history will be implemented')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: const Text('Safety Check History'),
+            backgroundColor: AppColors.driverColor,
+            foregroundColor: Colors.white,
+          ),
+          body: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: 5, // Mock history count
+            itemBuilder: (context, index) {
+              final date = DateTime.now().subtract(Duration(days: index));
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: AppColors.success,
+                    child: const Icon(Icons.check, color: Colors.white),
+                  ),
+                  title: Text(
+                      'Safety Check - ${date.day}/${date.month}/${date.year}'),
+                  subtitle: Text(
+                      'Completed at ${date.hour}:${date.minute.toString().padLeft(2, '0')}'),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Viewing detailed check history...'),
+                        backgroundColor: AppColors.info,
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+      ),
     );
   }
 

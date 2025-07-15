@@ -1,8 +1,6 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_constants.dart';
-import '../../core/services/role_navigation_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../onboarding/onboarding_screen.dart';
 
@@ -63,20 +61,12 @@ class _SplashScreenState extends State<SplashScreen>
   void _navigateToNext() {
     Future.delayed(AppConstants.splashDuration, () async {
       if (mounted) {
-        // Check if user is already authenticated
-        final currentUser = FirebaseAuth.instance.currentUser;
-
-        if (currentUser != null) {
-          // User is authenticated, navigate based on role
-          await RoleNavigationService.instance.navigateBasedOnRole(context);
-        } else {
-          // User not authenticated, go to onboarding
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => const OnboardingScreen(),
-            ),
-          );
-        }
+        // Navigate to onboarding screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const OnboardingScreen(),
+          ),
+        );
       }
     });
   }

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -25,33 +27,85 @@ class FirebaseService {
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
 
-  /// Initialize Firebase services
-  Future<void> initialize({FirebaseOptions? options}) async {
+  /// Initialize Firebase services with retry mechanism
+  Future<void> initialize({
+    FirebaseOptions? options,
+    int maxRetries = 3,
+    Duration retryDelay = const Duration(seconds: 2),
+  }) async {
     if (_isInitialized) return;
 
+    int attempts = 0;
+    while (attempts < maxRetries) {
+      try {
+        // Initialize Firebase for production use
+        await Firebase.initializeApp(options: options);
+
+        // Configure Firestore settings
+        await _configureFirestore();
+
+        // Initialize Firebase Messaging (only on supported platforms)
+        await _initializeMessaging();
+
+        // Initialize Crashlytics (only on supported platforms)
+        await _initializeCrashlytics();
+
+        // Initialize Analytics (only on supported platforms)
+        await _initializeAnalytics();
+
+        // Platform-specific Auth configuration for desktop
+        if (kIsWeb ||
+            Platform.isWindows ||
+            Platform.isLinux ||
+            Platform.isMacOS) {
+          await _configureAuthForDesktop();
+        }
+
+        _isInitialized = true;
+        debugPrint('🎉 Firebase services initialized successfully');
+        
+        // Register background message handler
+        if (_isMessagingSupported()) {
+          FirebaseMessaging.onBackgroundMessage(_handleBackgroundMessage);
+        }
+        
+        return; // Success - exit the retry loop
+      } catch (e, stackTrace) {
+        attempts++;
+        final isLastAttempt = attempts >= maxRetries;
+        
+        debugPrint('⚠️ Firebase initialization attempt $attempts failed: $e');
+        
+        if (isLastAttempt) {
+          debugPrint('❌ All Firebase initialization attempts failed');
+          // Log the error to console in debug mode
+          if (kDebugMode) {
+            print('Firebase initialization error: $e\n$stackTrace');
+          }
+          rethrow; // Don't continue if all retries fail
+        } else {
+          // Wait before retrying
+          await Future.delayed(retryDelay * attempts);
+        }
+      }
+    }
+  }
+
+  /// Configure Firebase Auth for desktop platforms to minimize threading issues
+  Future<void> _configureAuthForDesktop() async {
     try {
-      // Initialize Firebase for production use
-
-      // Initialize Firebase
-      await Firebase.initializeApp(options: options);
-
-      // Configure Firestore settings
-      await _configureFirestore();
-
-      // Initialize Firebase Messaging
-      await _initializeMessaging();
-
-      // Initialize Crashlytics
-      await _initializeCrashlytics();
-
-      // Initialize Analytics
-      await _initializeAnalytics();
-
-      _isInitialized = true;
-      debugPrint('Firebase services initialized successfully');
+      // Set persistence for desktop platforms
+      if (kIsWeb ||
+          Platform.isWindows ||
+          Platform.isLinux ||
+          Platform.isMacOS) {
+        // Configure auth state persistence
+        await auth.setPersistence(Persistence.LOCAL);
+        debugPrint('Firebase Auth configured for desktop platform');
+      }
     } catch (e) {
-      debugPrint('Failed to initialize Firebase: $e');
-      rethrow; // Don't continue if Firebase fails to initialize
+      debugPrint('Warning: Could not configure Auth for desktop: $e');
+      // Don't rethrow as this is not critical
     }
   }
 

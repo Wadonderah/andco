@@ -112,6 +112,21 @@ abstract class BaseRepository<T> {
     }
   }
 
+  /// Get documents where field is in list of values
+  Future<List<T>> getWhereIn(String field, List<dynamic> values) async {
+    try {
+      final querySnapshot =
+          await collection.where(field, whereIn: values).get();
+      return querySnapshot.docs
+          .map((doc) => fromMap(doc.data() as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      await FirebaseService.instance.logError(e, StackTrace.current,
+          reason: 'Failed to query $collectionName with whereIn');
+      return [];
+    }
+  }
+
   /// Update document
   Future<void> update(String id, Map<String, dynamic> data) async {
     try {

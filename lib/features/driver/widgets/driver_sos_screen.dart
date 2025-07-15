@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 
@@ -16,11 +17,11 @@ class _DriverSOSScreenState extends State<DriverSOSScreen>
   late AnimationController _countdownController;
   late Animation<double> _pulseAnimation;
   late Animation<double> _scaleAnimation;
-  
+
   bool _isSOSActive = false;
   bool _isCountingDown = false;
   int _countdown = 5;
-  
+
   final List<EmergencyContact> _emergencyContacts = [
     EmergencyContact(
       name: 'Emergency Services',
@@ -104,12 +105,12 @@ class _DriverSOSScreenState extends State<DriverSOSScreen>
       duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
-    
+
     _countdownController = AnimationController(
       duration: const Duration(seconds: 5),
       vsync: this,
     );
-    
+
     _pulseAnimation = Tween<double>(
       begin: 1.0,
       end: 1.3,
@@ -117,7 +118,7 @@ class _DriverSOSScreenState extends State<DriverSOSScreen>
       parent: _pulseController,
       curve: Curves.easeInOut,
     ));
-    
+
     _scaleAnimation = Tween<double>(
       begin: 1.0,
       end: 0.9,
@@ -125,7 +126,7 @@ class _DriverSOSScreenState extends State<DriverSOSScreen>
       parent: _countdownController,
       curve: Curves.easeInOut,
     ));
-    
+
     _pulseController.repeat(reverse: true);
   }
 
@@ -185,24 +186,32 @@ class _DriverSOSScreenState extends State<DriverSOSScreen>
                             children: [
                               Text(
                                 'Mike Wilson',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                               ),
                               Text(
                                 'Bus #001 • Route A • 12 Students',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: AppColors.textSecondary,
-                                ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
                               ),
                             ],
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: AppColors.success.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
+                            borderRadius:
+                                BorderRadius.circular(AppConstants.radiusSmall),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -237,8 +246,10 @@ class _DriverSOSScreenState extends State<DriverSOSScreen>
                   padding: const EdgeInsets.all(AppConstants.paddingMedium),
                   decoration: BoxDecoration(
                     color: AppColors.warning.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-                    border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+                    borderRadius:
+                        BorderRadius.circular(AppConstants.radiusMedium),
+                    border:
+                        Border.all(color: AppColors.warning.withOpacity(0.3)),
                   ),
                   child: Row(
                     children: [
@@ -254,16 +265,22 @@ class _DriverSOSScreenState extends State<DriverSOSScreen>
                           children: [
                             Text(
                               'Emergency Use Only',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.warning,
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.warning,
+                                  ),
                             ),
                             Text(
                               'This will immediately alert dispatch, school, and emergency services.',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
                             ),
                           ],
                         ),
@@ -271,9 +288,9 @@ class _DriverSOSScreenState extends State<DriverSOSScreen>
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: AppConstants.paddingLarge * 2),
-                
+
                 // SOS Button
                 Center(
                   child: AnimatedBuilder(
@@ -285,14 +302,18 @@ class _DriverSOSScreenState extends State<DriverSOSScreen>
                           animation: _scaleAnimation,
                           builder: (context, child) {
                             return Transform.scale(
-                              scale: _isCountingDown ? _scaleAnimation.value : 1.0,
+                              scale:
+                                  _isCountingDown ? _scaleAnimation.value : 1.0,
                               child: GestureDetector(
-                                onTap: _isCountingDown ? _cancelSOS : _activateSOS,
+                                onTap:
+                                    _isCountingDown ? _cancelSOS : _activateSOS,
                                 child: Container(
                                   width: 200,
                                   height: 200,
                                   decoration: BoxDecoration(
-                                    color: _isSOSActive ? AppColors.error : AppColors.error.withOpacity(0.8),
+                                    color: _isSOSActive
+                                        ? AppColors.error
+                                        : AppColors.error.withOpacity(0.8),
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
@@ -306,7 +327,9 @@ class _DriverSOSScreenState extends State<DriverSOSScreen>
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Icon(
-                                        _isCountingDown ? Icons.cancel : Icons.emergency,
+                                        _isCountingDown
+                                            ? Icons.cancel
+                                            : Icons.emergency,
                                         color: Colors.white,
                                         size: 60,
                                       ),
@@ -342,31 +365,31 @@ class _DriverSOSScreenState extends State<DriverSOSScreen>
                     },
                   ),
                 ),
-                
+
                 const SizedBox(height: AppConstants.paddingLarge),
-                
+
                 // Instructions
                 Text(
-                  _isCountingDown 
+                  _isCountingDown
                       ? 'Tap to cancel emergency alert'
                       : 'Tap to activate emergency alert',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+                        color: AppColors.textSecondary,
+                      ),
                   textAlign: TextAlign.center,
                 ),
-                
+
                 const SizedBox(height: AppConstants.paddingLarge * 2),
-                
+
                 // Quick Incident Buttons
                 Text(
                   'Quick Incident Report',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
                 const SizedBox(height: AppConstants.paddingMedium),
-                
+
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -382,19 +405,20 @@ class _DriverSOSScreenState extends State<DriverSOSScreen>
                     return _buildIncidentCard(incident);
                   },
                 ),
-                
+
                 const SizedBox(height: AppConstants.paddingLarge),
-                
+
                 // Emergency Contacts
                 Text(
                   'Emergency Contacts',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
                 const SizedBox(height: AppConstants.paddingMedium),
-                
-                ..._emergencyContacts.map((contact) => _buildEmergencyContactCard(contact)).toList(),
+
+                ..._emergencyContacts
+                    .map((contact) => _buildEmergencyContactCard(contact)),
               ],
             ),
           ),
@@ -429,16 +453,16 @@ class _DriverSOSScreenState extends State<DriverSOSScreen>
               Text(
                 incident.name,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 4),
               Text(
                 incident.description,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+                      color: AppColors.textSecondary,
+                    ),
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -452,7 +476,7 @@ class _DriverSOSScreenState extends State<DriverSOSScreen>
 
   Widget _buildEmergencyContactCard(EmergencyContact contact) {
     final color = _getContactColor(contact.type);
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: AppConstants.paddingSmall),
       child: ListTile(
@@ -535,17 +559,17 @@ class _DriverSOSScreenState extends State<DriverSOSScreen>
 
   void _activateSOS() {
     if (_isCountingDown) return;
-    
+
     setState(() {
       _isCountingDown = true;
       _countdown = 5;
     });
-    
+
     // Haptic feedback
     HapticFeedback.heavyImpact();
-    
+
     _countdownController.forward();
-    
+
     // Start countdown
     _startCountdown();
   }
@@ -556,9 +580,9 @@ class _DriverSOSScreenState extends State<DriverSOSScreen>
         setState(() {
           _countdown--;
         });
-        
+
         HapticFeedback.selectionClick();
-        
+
         if (_countdown > 0) {
           _startCountdown();
         } else {
@@ -574,9 +598,9 @@ class _DriverSOSScreenState extends State<DriverSOSScreen>
       _isSOSActive = false;
       _countdown = 5;
     });
-    
+
     _countdownController.reset();
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Emergency alert cancelled'),
@@ -590,13 +614,13 @@ class _DriverSOSScreenState extends State<DriverSOSScreen>
       _isCountingDown = false;
       _isSOSActive = true;
     });
-    
+
     // Continuous haptic feedback
     HapticFeedback.heavyImpact();
-    
+
     // Show SOS triggered dialog
     _showSOSTriggeredDialog();
-    
+
     // Send alerts to all emergency contacts
     _sendEmergencyAlerts();
   }
@@ -656,7 +680,7 @@ class _DriverSOSScreenState extends State<DriverSOSScreen>
     setState(() {
       _isSOSActive = false;
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('SOS deactivated - Stay safe!'),

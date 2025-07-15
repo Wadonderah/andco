@@ -116,8 +116,20 @@ class RoleNavigationService {
   }
 
   /// Check if user can access super admin role
-  static bool canAccessSuperAdmin(String? email) {
-    return email == 'admin@andco.com';
+  /// Check if email can access super admin (dynamic based on existing admin)
+  static Future<bool> canAccessSuperAdmin(String? email) async {
+    if (email == null) return false;
+
+    // Check if any super admin exists
+    final existingAdminEmail = await getSuperAdminEmail();
+
+    if (existingAdminEmail == null) {
+      // No super admin exists yet, allow any email to sign up
+      return true;
+    } else {
+      // Super admin exists, only allow that specific email
+      return email == existingAdminEmail;
+    }
   }
 
   /// Check if super admin already exists in the system
@@ -125,7 +137,6 @@ class RoleNavigationService {
     try {
       final querySnapshot = await FirebaseFirestore.instance
           .collection('users')
-          .where('email', isEqualTo: 'admin@andco.com')
           .where('role', isEqualTo: 'superAdmin')
           .limit(1)
           .get();
@@ -134,6 +145,25 @@ class RoleNavigationService {
     } catch (e) {
       debugPrint('Error checking if super admin exists: $e');
       return false;
+    }
+  }
+
+  /// Get the existing super admin email (if any)
+  static Future<String?> getSuperAdminEmail() async {
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'superAdmin')
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        return querySnapshot.docs.first.data()['email'] as String?;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error getting super admin email: $e');
+      return null;
     }
   }
 

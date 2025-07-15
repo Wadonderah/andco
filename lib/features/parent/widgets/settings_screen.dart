@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/theme_service.dart';
 import '../../../core/theme/app_colors.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -298,49 +300,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildThemeOption(String label, ThemeMode mode, IconData icon) {
-    final isSelected = Theme.of(context).brightness ==
-        (mode == ThemeMode.light
-            ? Brightness.light
-            : mode == ThemeMode.dark
-                ? Brightness.dark
-                : MediaQuery.of(context).platformBrightness);
+    return Consumer(
+      builder: (context, ref, child) {
+        final themeState = ref.watch(themeServiceProvider);
+        final themeService = ref.read(themeServiceProvider.notifier);
 
-    return GestureDetector(
-      onTap: () {
-        // TODO: Implement theme switching with provider
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$label theme selected')),
+        // Map ThemeMode to AppThemeMode
+        AppThemeMode appThemeMode;
+        switch (mode) {
+          case ThemeMode.light:
+            appThemeMode = AppThemeMode.light;
+            break;
+          case ThemeMode.dark:
+            appThemeMode = AppThemeMode.dark;
+            break;
+          case ThemeMode.system:
+            appThemeMode = AppThemeMode.system;
+            break;
+        }
+
+        final isSelected = themeState.themeMode == appThemeMode;
+
+        return GestureDetector(
+          onTap: () {
+            themeService.setThemeMode(appThemeMode);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('$label theme selected'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.parentColor.withOpacity(0.1) : null,
+              borderRadius: BorderRadius.circular(8),
+              border:
+                  isSelected ? Border.all(color: AppColors.parentColor) : null,
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  icon,
+                  color: isSelected
+                      ? AppColors.parentColor
+                      : AppColors.textSecondary,
+                  size: 20,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isSelected
+                        ? AppColors.parentColor
+                        : AppColors.textSecondary,
+                    fontWeight:
+                        isSelected ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.parentColor.withOpacity(0.1) : null,
-          borderRadius: BorderRadius.circular(8),
-          border: isSelected ? Border.all(color: AppColors.parentColor) : null,
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              color:
-                  isSelected ? AppColors.parentColor : AppColors.textSecondary,
-              size: 20,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                color: isSelected
-                    ? AppColors.parentColor
-                    : AppColors.textSecondary,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -351,7 +375,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: const Text('Language'),
         subtitle: Text(_language),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: _showLanguageSelector,
+        onTap: showLanguageSelector,
       ),
     );
   }
@@ -401,7 +425,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: const Text('Emergency Contact'),
         subtitle: Text(_emergencyContact),
         trailing: const Icon(Icons.edit, size: 16),
-        onTap: _editEmergencyContact,
+        onTap: editEmergencyContact,
       ),
     );
   }
@@ -446,14 +470,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: _showPrivacyPolicy,
+                    onPressed: showPrivacyPolicy,
                     child: const Text('Privacy Policy'),
                   ),
                 ),
                 const SizedBox(width: AppConstants.paddingSmall),
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: _showTermsOfService,
+                    onPressed: showTermsOfService,
                     child: const Text('Terms of Service'),
                   ),
                 ),
@@ -484,7 +508,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showLanguageSelector() {
+  void showLanguageSelector() {
     showModalBottomSheet(
       context: context,
       builder: (context) => Container(
@@ -517,20 +541,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _editEmergencyContact() {
+  void editEmergencyContact() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
           content: Text('Emergency contact editing will be implemented')),
     );
   }
 
-  void _changePassword() {
+  void changePassword() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Password change will be implemented')),
     );
   }
 
-  void _deleteAccount() {
+  void deleteAccount() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -558,15 +582,104 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showPrivacyPolicy() {
+  void showPrivacyPolicy() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Privacy policy will be displayed')),
     );
   }
 
-  void _showTermsOfService() {
+  void showTermsOfService() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Terms of service will be displayed')),
+    );
+  }
+
+  void _changePassword() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Change Password'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              decoration: const InputDecoration(
+                labelText: 'Current Password',
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              decoration: const InputDecoration(
+                labelText: 'New Password',
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              decoration: const InputDecoration(
+                labelText: 'Confirm New Password',
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Password changed successfully'),
+                  backgroundColor: AppColors.success,
+                ),
+              );
+            },
+            child: const Text('Change Password'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _deleteAccount() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Account'),
+        content: const Text(
+          'Are you sure you want to delete your account? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Account deletion initiated'),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete Account'),
+          ),
+        ],
+      ),
     );
   }
 }

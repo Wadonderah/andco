@@ -91,7 +91,8 @@ class PaymentRepository extends BaseRepository<PaymentModel> {
   ) async {
     try {
       final querySnapshot = await collection
-          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where('createdAt',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
           .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
           .orderBy('createdAt', descending: true)
           .get();
@@ -119,7 +120,8 @@ class PaymentRepository extends BaseRepository<PaymentModel> {
     try {
       final querySnapshot = await collection
           .where('userId', isEqualTo: userId)
-          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where('createdAt',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
           .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
           .orderBy('createdAt', descending: true)
           .get();
@@ -147,7 +149,8 @@ class PaymentRepository extends BaseRepository<PaymentModel> {
     try {
       final querySnapshot = await collection
           .where('schoolId', isEqualTo: schoolId)
-          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where('createdAt',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
           .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
           .orderBy('createdAt', descending: true)
           .get();
@@ -198,7 +201,7 @@ class PaymentRepository extends BaseRepository<PaymentModel> {
         break;
     }
 
-    await updateById(paymentId, updateData);
+    await update(paymentId, updateData);
   }
 
   /// Process payment (placeholder for actual payment processing)
@@ -221,18 +224,24 @@ class PaymentRepository extends BaseRepository<PaymentModel> {
   }
 
   /// Get payment statistics for a school
-  Future<Map<String, dynamic>> getSchoolPaymentStatistics(String schoolId) async {
+  Future<Map<String, dynamic>> getSchoolPaymentStatistics(
+      String schoolId) async {
     final payments = await getPaymentsForSchool(schoolId);
-    
-    final totalAmount = payments.fold<double>(0, (sum, payment) => sum + payment.amount);
-    final completedPayments = payments.where((p) => p.status == PaymentStatus.completed);
-    final completedAmount = completedPayments.fold<double>(0, (sum, payment) => sum + payment.amount);
-    
+
+    final totalAmount =
+        payments.fold<double>(0, (sum, payment) => sum + payment.amount);
+    final completedPayments =
+        payments.where((p) => p.status == PaymentStatus.completed);
+    final completedAmount = completedPayments.fold<double>(
+        0, (sum, payment) => sum + payment.amount);
+
     return {
       'totalPayments': payments.length,
       'completedPayments': completedPayments.length,
-      'pendingPayments': payments.where((p) => p.status == PaymentStatus.pending).length,
-      'failedPayments': payments.where((p) => p.status == PaymentStatus.failed).length,
+      'pendingPayments':
+          payments.where((p) => p.status == PaymentStatus.pending).length,
+      'failedPayments':
+          payments.where((p) => p.status == PaymentStatus.failed).length,
       'totalAmount': totalAmount,
       'completedAmount': completedAmount,
       'pendingAmount': payments
@@ -244,16 +253,21 @@ class PaymentRepository extends BaseRepository<PaymentModel> {
   /// Get user payment statistics
   Future<Map<String, dynamic>> getUserPaymentStatistics(String userId) async {
     final payments = await getPaymentsForUser(userId);
-    
-    final totalAmount = payments.fold<double>(0, (sum, payment) => sum + payment.amount);
-    final completedPayments = payments.where((p) => p.status == PaymentStatus.completed);
-    final completedAmount = completedPayments.fold<double>(0, (sum, payment) => sum + payment.amount);
-    
+
+    final totalAmount =
+        payments.fold<double>(0, (sum, payment) => sum + payment.amount);
+    final completedPayments =
+        payments.where((p) => p.status == PaymentStatus.completed);
+    final completedAmount = completedPayments.fold<double>(
+        0, (sum, payment) => sum + payment.amount);
+
     return {
       'totalPayments': payments.length,
       'completedPayments': completedPayments.length,
-      'pendingPayments': payments.where((p) => p.status == PaymentStatus.pending).length,
-      'failedPayments': payments.where((p) => p.status == PaymentStatus.failed).length,
+      'pendingPayments':
+          payments.where((p) => p.status == PaymentStatus.pending).length,
+      'failedPayments':
+          payments.where((p) => p.status == PaymentStatus.failed).length,
       'totalAmount': totalAmount,
       'completedAmount': completedAmount,
       'pendingAmount': payments
@@ -266,7 +280,7 @@ class PaymentRepository extends BaseRepository<PaymentModel> {
   Future<List<PaymentModel>> searchPaymentsByDescription(String query) async {
     final allPayments = await getAll();
     return allPayments
-        .where((payment) => 
+        .where((payment) =>
             payment.description.toLowerCase().contains(query.toLowerCase()))
         .toList();
   }
@@ -279,20 +293,25 @@ class PaymentRepository extends BaseRepository<PaymentModel> {
   }
 
   /// Get monthly payment summary
-  Future<Map<String, double>> getMonthlyPaymentSummary(String schoolId, int year) async {
+  Future<Map<String, double>> getMonthlyPaymentSummary(
+      String schoolId, int year) async {
     final summary = <String, double>{};
-    
+
     for (int month = 1; month <= 12; month++) {
       final startDate = DateTime(year, month, 1);
-      final endDate = DateTime(year, month + 1, 1).subtract(const Duration(days: 1));
-      
-      final payments = await getSchoolPaymentsInDateRange(schoolId, startDate, endDate);
-      final completedPayments = payments.where((p) => p.status == PaymentStatus.completed);
-      final monthlyTotal = completedPayments.fold<double>(0, (sum, payment) => sum + payment.amount);
-      
-      summary['${year}-${month.toString().padLeft(2, '0')}'] = monthlyTotal;
+      final endDate =
+          DateTime(year, month + 1, 1).subtract(const Duration(days: 1));
+
+      final payments =
+          await getSchoolPaymentsInDateRange(schoolId, startDate, endDate);
+      final completedPayments =
+          payments.where((p) => p.status == PaymentStatus.completed);
+      final monthlyTotal = completedPayments.fold<double>(
+          0, (sum, payment) => sum + payment.amount);
+
+      summary['$year-${month.toString().padLeft(2, '0')}'] = monthlyTotal;
     }
-    
+
     return summary;
   }
 }

@@ -36,13 +36,15 @@ class ChildModelAdapter extends TypeAdapter<ChildModel> {
       createdAt: fields[16] as DateTime,
       updatedAt: fields[17] as DateTime,
       metadata: (fields[18] as Map?)?.cast<String, dynamic>(),
+      studentId: fields[19] as String?,
+      gender: fields[20] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, ChildModel obj) {
     writer
-      ..writeByte(19)
+      ..writeByte(21)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -80,7 +82,11 @@ class ChildModelAdapter extends TypeAdapter<ChildModel> {
       ..writeByte(17)
       ..write(obj.updatedAt)
       ..writeByte(18)
-      ..write(obj.metadata);
+      ..write(obj.metadata)
+      ..writeByte(19)
+      ..write(obj.studentId)
+      ..writeByte(20)
+      ..write(obj.gender);
   }
 
   @override

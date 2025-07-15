@@ -2,16 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
+import '../../shared/models/child_model.dart';
 import '../../shared/widgets/andco_logo.dart';
-import 'widgets/add_child_screen.dart';
 import 'widgets/chat_screen.dart';
 import 'widgets/driver_info_screen.dart';
 import 'widgets/emergency_sos_screen.dart';
+import 'widgets/enhanced_add_child_screen.dart';
+import 'widgets/enhanced_child_management_screen.dart';
+import 'widgets/enhanced_payment_screen.dart';
+import 'widgets/enhanced_settings_screen.dart';
 import 'widgets/live_tracking_map.dart';
 import 'widgets/notifications_screen.dart';
-import 'widgets/payment_screen.dart';
 import 'widgets/ride_history_screen.dart';
-import 'widgets/settings_screen.dart';
 
 class ParentDashboard extends StatefulWidget {
   const ParentDashboard({super.key});
@@ -26,7 +28,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
   final List<Widget> _pages = [
     const ParentHomeTab(),
     const ParentTrackingTab(),
-    const ParentChildrenTab(),
+    const EnhancedChildManagementScreen(),
     const ParentProfileTab(),
   ];
 
@@ -744,32 +746,33 @@ class ParentChildrenTab extends StatefulWidget {
 }
 
 class _ParentChildrenTabState extends State<ParentChildrenTab> {
-  final List<Child> _children = [
-    Child(
+  final List<ChildModel> _children = [
+    ChildModel(
       id: '1',
       name: 'Emma Johnson',
-      gender: 'Female',
+      parentId: 'parent1',
+      schoolId: 'school1',
       grade: '5A',
-      school: 'Lincoln Elementary',
-      emergencyContact: '+1 234 567 8900',
-      bloodType: 'O+',
-      hasAllergies: true,
-      hasSpecialNeeds: false,
-      medicalNotes: 'Allergic to peanuts',
-      profileImagePath: '',
+      className: '5A',
+      dateOfBirth: DateTime(2015, 6, 15),
+      emergencyContact: 'Jane Johnson',
+      emergencyContactPhone: '+1 234 567 8900',
+      medicalInfo: 'Allergic to peanuts',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     ),
-    Child(
+    ChildModel(
       id: '2',
       name: 'Alex Johnson',
-      gender: 'Male',
+      parentId: 'parent1',
+      schoolId: 'school1',
       grade: '3B',
-      school: 'Lincoln Elementary',
-      emergencyContact: '+1 234 567 8900',
-      bloodType: 'A+',
-      hasAllergies: false,
-      hasSpecialNeeds: false,
-      medicalNotes: '',
-      profileImagePath: '',
+      className: '3B',
+      dateOfBirth: DateTime(2017, 3, 22),
+      emergencyContact: 'Jane Johnson',
+      emergencyContactPhone: '+1 234 567 8900',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     ),
   ];
 
@@ -887,7 +890,7 @@ class _ParentChildrenTabState extends State<ParentChildrenTab> {
     );
   }
 
-  Widget _buildChildCard(Child child) {
+  Widget _buildChildCard(ChildModel child) {
     return Card(
       margin: const EdgeInsets.only(bottom: AppConstants.paddingMedium),
       child: Padding(
@@ -900,10 +903,11 @@ class _ParentChildrenTabState extends State<ParentChildrenTab> {
                 CircleAvatar(
                   radius: 30,
                   backgroundColor: AppColors.parentColor.withOpacity(0.1),
-                  backgroundImage: child.profileImagePath.isNotEmpty
-                      ? AssetImage(child.profileImagePath)
-                      : null,
-                  child: child.profileImagePath.isEmpty
+                  backgroundImage:
+                      child.photoUrl != null && child.photoUrl!.isNotEmpty
+                          ? NetworkImage(child.photoUrl!)
+                          : null,
+                  child: child.photoUrl == null || child.photoUrl!.isEmpty
                       ? Text(
                           child.name[0],
                           style: TextStyle(
@@ -937,7 +941,7 @@ class _ParentChildrenTabState extends State<ParentChildrenTab> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${child.grade} • ${child.school}',
+                            'Grade ${child.grade} • Class ${child.className}',
                             style: Theme.of(context)
                                 .textTheme
                                 .bodyMedium
@@ -950,7 +954,8 @@ class _ParentChildrenTabState extends State<ParentChildrenTab> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          if (child.hasAllergies)
+                          if (child.medicalInfo != null &&
+                              child.medicalInfo!.isNotEmpty)
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6, vertical: 2),
@@ -959,7 +964,7 @@ class _ParentChildrenTabState extends State<ParentChildrenTab> {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Text(
-                                'Allergies',
+                                'Medical Info',
                                 style: TextStyle(
                                   color: AppColors.warning,
                                   fontSize: 10,
@@ -967,24 +972,23 @@ class _ParentChildrenTabState extends State<ParentChildrenTab> {
                                 ),
                               ),
                             ),
-                          if (child.hasSpecialNeeds)
-                            Container(
-                              margin: const EdgeInsets.only(left: 4),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppColors.info.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Text(
-                                'Special Needs',
-                                style: TextStyle(
-                                  color: AppColors.info,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                          Container(
+                            margin: const EdgeInsets.only(left: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.info.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              'Age ${child.age}',
+                              style: const TextStyle(
+                                color: AppColors.info,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
+                          ),
                         ],
                       ),
                     ],
@@ -1046,12 +1050,12 @@ class _ParentChildrenTabState extends State<ParentChildrenTab> {
             // Quick Info Row
             Row(
               children: [
-                _buildQuickInfo('Blood Type', child.bloodType, Icons.bloodtype),
+                _buildQuickInfo('Age', '${child.age} years', Icons.cake),
                 const SizedBox(width: AppConstants.paddingLarge),
-                _buildQuickInfo('Gender', child.gender, Icons.wc),
+                _buildQuickInfo('Class', child.className, Icons.class_),
                 const SizedBox(width: AppConstants.paddingLarge),
-                _buildQuickInfo(
-                    'Emergency', child.emergencyContact, Icons.phone),
+                _buildQuickInfo('Emergency',
+                    child.emergencyContact ?? 'Not set', Icons.phone),
               ],
             ),
           ],
@@ -1099,9 +1103,9 @@ class _ParentChildrenTabState extends State<ParentChildrenTab> {
   }
 
   void _addChild() async {
-    final result = await Navigator.of(context).push<Child>(
+    final result = await Navigator.of(context).push<ChildModel>(
       MaterialPageRoute(
-        builder: (context) => const AddChildScreen(),
+        builder: (context) => const EnhancedAddChildScreen(),
       ),
     );
 
@@ -1119,7 +1123,7 @@ class _ParentChildrenTabState extends State<ParentChildrenTab> {
     }
   }
 
-  void _handleChildAction(String action, Child child) {
+  void _handleChildAction(String action, ChildModel child) {
     switch (action) {
       case 'edit':
         _editChild(child);
@@ -1136,10 +1140,10 @@ class _ParentChildrenTabState extends State<ParentChildrenTab> {
     }
   }
 
-  void _editChild(Child child) async {
-    final result = await Navigator.of(context).push<Child>(
+  void _editChild(ChildModel child) async {
+    final result = await Navigator.of(context).push<ChildModel>(
       MaterialPageRoute(
-        builder: (context) => AddChildScreen(child: child),
+        builder: (context) => EnhancedAddChildScreen(child: child),
       ),
     );
 
@@ -1160,7 +1164,7 @@ class _ParentChildrenTabState extends State<ParentChildrenTab> {
     }
   }
 
-  void _trackChild(Child child) {
+  void _trackChild(ChildModel child) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => LiveTrackingMap(
@@ -1171,7 +1175,7 @@ class _ParentChildrenTabState extends State<ParentChildrenTab> {
     );
   }
 
-  void _showMedicalInfo(Child child) {
+  void _showMedicalInfo(ChildModel child) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1180,14 +1184,15 @@ class _ParentChildrenTabState extends State<ParentChildrenTab> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildMedicalInfoRow('Blood Type', child.bloodType),
+            _buildMedicalInfoRow('Age', '${child.age} years'),
+            _buildMedicalInfoRow('Grade', child.grade),
+            _buildMedicalInfoRow('Class', child.className),
+            if (child.medicalInfo != null && child.medicalInfo!.isNotEmpty)
+              _buildMedicalInfoRow('Medical Info', child.medicalInfo!),
             _buildMedicalInfoRow(
-                'Allergies', child.hasAllergies ? 'Yes' : 'No'),
+                'Emergency Contact', child.emergencyContact ?? 'Not set'),
             _buildMedicalInfoRow(
-                'Special Needs', child.hasSpecialNeeds ? 'Yes' : 'No'),
-            if (child.medicalNotes.isNotEmpty)
-              _buildMedicalInfoRow('Notes', child.medicalNotes),
-            _buildMedicalInfoRow('Emergency Contact', child.emergencyContact),
+                'Emergency Phone', child.emergencyContactPhone ?? 'Not set'),
           ],
         ),
         actions: [
@@ -1219,7 +1224,7 @@ class _ParentChildrenTabState extends State<ParentChildrenTab> {
     );
   }
 
-  void _deleteChild(Child child) {
+  void _deleteChild(ChildModel child) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1401,7 +1406,7 @@ class ParentProfileTab extends StatelessWidget {
                 () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (context) => const PaymentScreen(),
+                      builder: (context) => const EnhancedPaymentScreen(),
                     ),
                   );
                 },
@@ -1441,7 +1446,7 @@ class ParentProfileTab extends StatelessWidget {
                 () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (context) => const SettingsScreen(),
+                      builder: (context) => const EnhancedSettingsScreen(),
                     ),
                   );
                 },

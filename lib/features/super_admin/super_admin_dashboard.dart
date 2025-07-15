@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../shared/widgets/andco_logo.dart';
+import 'widgets/enhanced_school_management_screen.dart';
 
 class SuperAdminDashboard extends StatefulWidget {
   const SuperAdminDashboard({super.key});
@@ -15,7 +17,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
 
   final List<Widget> _pages = [
     const SuperAdminHomeTab(),
-    const SuperAdminSchoolsTab(),
+    const EnhancedSchoolManagementScreen(),
     const SuperAdminAnalyticsTab(),
     const SuperAdminFinanceTab(),
     const SuperAdminSettingsTab(),
@@ -91,24 +93,30 @@ class SuperAdminHomeTab extends StatelessWidget {
                       children: [
                         Text(
                           'Super Admin',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
                         ),
                         Text(
                           'Platform Overview',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                         ),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: AppColors.success.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
+                      borderRadius:
+                          BorderRadius.circular(AppConstants.radiusSmall),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -142,8 +150,8 @@ class SuperAdminHomeTab extends StatelessWidget {
               Text(
                 'Platform Statistics',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               const SizedBox(height: AppConstants.paddingMedium),
 
@@ -196,11 +204,11 @@ class SuperAdminHomeTab extends StatelessWidget {
               Text(
                 'Quick Actions',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               const SizedBox(height: AppConstants.paddingMedium),
-              
+
               Row(
                 children: [
                   Expanded(
@@ -257,11 +265,11 @@ class SuperAdminHomeTab extends StatelessWidget {
               Text(
                 'Recent Platform Activities',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               const SizedBox(height: AppConstants.paddingMedium),
-              
+
               _buildActivityCard(
                 context,
                 'New school approved',
@@ -270,7 +278,7 @@ class SuperAdminHomeTab extends StatelessWidget {
                 AppColors.success,
                 '2 hours ago',
               ),
-              
+
               _buildActivityCard(
                 context,
                 'Payment processed',
@@ -279,7 +287,7 @@ class SuperAdminHomeTab extends StatelessWidget {
                 AppColors.primary,
                 '4 hours ago',
               ),
-              
+
               _buildActivityCard(
                 context,
                 'System maintenance',
@@ -288,7 +296,7 @@ class SuperAdminHomeTab extends StatelessWidget {
                 AppColors.info,
                 '1 day ago',
               ),
-              
+
               _buildActivityCard(
                 context,
                 'Support ticket resolved',
@@ -339,23 +347,23 @@ class SuperAdminHomeTab extends StatelessWidget {
             Text(
               value,
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
             ),
             Text(
               title,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w500,
-              ),
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w500,
+                  ),
             ),
             const SizedBox(height: 4),
             Text(
               subtitle,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+                    color: AppColors.textSecondary,
+                  ),
             ),
           ],
         ),
@@ -428,8 +436,8 @@ class SuperAdminHomeTab extends StatelessWidget {
         trailing: Text(
           time,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: AppColors.textSecondary,
-          ),
+                color: AppColors.textSecondary,
+              ),
         ),
       ),
     );

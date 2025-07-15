@@ -88,14 +88,11 @@ class _ResponsiveAuthFormState extends ConsumerState<ResponsiveAuthForm> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (widget.showModeToggle) _buildModeToggle(isSmallScreen),
-            if (widget.showModeToggle) SizedBox(height: isSmallScreen ? 16 : 24),
-            
+            if (widget.showModeToggle)
+              SizedBox(height: isSmallScreen ? 16 : 24),
             ..._buildFormFields(isSmallScreen),
-            
             SizedBox(height: isSmallScreen ? 20 : 24),
-            
             _buildPrimaryButton(isLoading, isSmallScreen),
-            
             if (widget.showSocialAuth) ...[
               SizedBox(height: isSmallScreen ? 16 : 20),
               _buildDivider(),
@@ -114,8 +111,8 @@ class _ResponsiveAuthFormState extends ConsumerState<ResponsiveAuthForm> {
         Expanded(
           child: ResponsiveAuthButton(
             text: 'Login',
-            type: _currentMode == AuthFormMode.login 
-                ? AuthButtonType.primary 
+            type: _currentMode == AuthFormMode.login
+                ? AuthButtonType.primary
                 : AuthButtonType.secondary,
             size: isSmallScreen ? AuthButtonSize.small : AuthButtonSize.medium,
             customColor: widget.themeColor,
@@ -131,8 +128,8 @@ class _ResponsiveAuthFormState extends ConsumerState<ResponsiveAuthForm> {
         Expanded(
           child: ResponsiveAuthButton(
             text: 'Register',
-            type: _currentMode == AuthFormMode.register 
-                ? AuthButtonType.primary 
+            type: _currentMode == AuthFormMode.register
+                ? AuthButtonType.primary
                 : AuthButtonType.secondary,
             size: isSmallScreen ? AuthButtonSize.small : AuthButtonSize.medium,
             customColor: widget.themeColor,
@@ -280,8 +277,8 @@ class _ResponsiveAuthFormState extends ConsumerState<ResponsiveAuthForm> {
     return Column(
       children: [
         ResponsiveAuthButton(
-          text: _currentMode == AuthFormMode.login 
-              ? 'Sign in with Google' 
+          text: _currentMode == AuthFormMode.login
+              ? 'Sign in with Google'
               : 'Register with Google',
           type: AuthButtonType.google,
           size: isSmallScreen ? AuthButtonSize.medium : AuthButtonSize.large,
@@ -290,8 +287,8 @@ class _ResponsiveAuthFormState extends ConsumerState<ResponsiveAuthForm> {
         ),
         SizedBox(height: isSmallScreen ? 12 : 16),
         ResponsiveAuthButton(
-          text: _currentMode == AuthFormMode.login 
-              ? 'Sign in with Phone' 
+          text: _currentMode == AuthFormMode.login
+              ? 'Sign in with Phone'
               : 'Register with Phone',
           type: AuthButtonType.phone,
           size: isSmallScreen ? AuthButtonSize.medium : AuthButtonSize.large,
@@ -346,7 +343,9 @@ class _ResponsiveAuthFormState extends ConsumerState<ResponsiveAuthForm> {
                 child: ResponsiveAuthButton(
                   text: 'Cancel',
                   type: AuthButtonType.outlined,
-                  size: isSmallScreen ? AuthButtonSize.medium : AuthButtonSize.large,
+                  size: isSmallScreen
+                      ? AuthButtonSize.medium
+                      : AuthButtonSize.large,
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ),
@@ -355,7 +354,9 @@ class _ResponsiveAuthFormState extends ConsumerState<ResponsiveAuthForm> {
                 child: ResponsiveAuthButton(
                   text: 'Sign Out',
                   type: AuthButtonType.logout,
-                  size: isSmallScreen ? AuthButtonSize.medium : AuthButtonSize.large,
+                  size: isSmallScreen
+                      ? AuthButtonSize.medium
+                      : AuthButtonSize.large,
                   isLoading: isLoading,
                   onPressed: _handleLogout,
                 ),
@@ -414,18 +415,22 @@ class _ResponsiveAuthFormState extends ConsumerState<ResponsiveAuthForm> {
 
     try {
       if (_currentMode == AuthFormMode.login) {
-        await ref.read(authControllerProvider.notifier).signInWithEmailAndPassword(
-          _emailController.text.trim(),
-          _passwordController.text,
-        );
+        await ref
+            .read(authControllerProvider.notifier)
+            .signInWithEmailAndPassword(
+              _emailController.text.trim(),
+              _passwordController.text,
+            );
       } else {
-        await ref.read(authControllerProvider.notifier).signUpWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-          name: _nameController.text.trim(),
-          phoneNumber: '',
-          role: widget.userRole ?? UserRole.parent,
-        );
+        await ref
+            .read(authControllerProvider.notifier)
+            .signUpWithEmailAndPassword(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+              name: _nameController.text.trim(),
+              phoneNumber: '',
+              role: widget.userRole ?? UserRole.parent,
+            );
       }
       widget.onSuccess?.call();
     } catch (e) {
@@ -436,8 +441,8 @@ class _ResponsiveAuthFormState extends ConsumerState<ResponsiveAuthForm> {
   Future<void> _handleGoogleAuth() async {
     try {
       await ref.read(authControllerProvider.notifier).signInWithGoogle(
-        role: widget.userRole ?? UserRole.parent,
-      );
+            role: widget.userRole ?? UserRole.parent,
+          );
       widget.onSuccess?.call();
     } catch (e) {
       _showErrorSnackBar(e.toString());
@@ -445,8 +450,42 @@ class _ResponsiveAuthFormState extends ConsumerState<ResponsiveAuthForm> {
   }
 
   Future<void> _handlePhoneAuth() async {
-    // This would typically open a phone auth dialog or navigate to phone auth screen
-    _showInfoSnackBar('Phone authentication coming soon!');
+    // Show phone auth dialog
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Phone Authentication'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Enter your phone number to receive a verification code.'),
+            SizedBox(height: 16),
+            TextField(
+              decoration: InputDecoration(
+                labelText: 'Phone Number',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.phone),
+                hintText: '+1 234 567 8900',
+              ),
+              keyboardType: TextInputType.phone,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showInfoSnackBar('Phone verification code sent!');
+            },
+            child: const Text('Send Code'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _handleLogout() async {

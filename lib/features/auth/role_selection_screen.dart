@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/role_navigation_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../shared/models/user_model.dart';
 import '../../shared/widgets/andco_logo.dart';
@@ -33,9 +34,6 @@ class RoleSelectionScreen extends StatefulWidget {
 class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   String? _selectedRole;
   bool _isLoading = false;
-
-  // Super Admin email restriction
-  static const String _superAdminEmail = 'admin@andco.com';
 
   final List<RoleOption> _roles = [
     RoleOption(
@@ -313,18 +311,23 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     ).animate().fadeIn(delay: 800.ms, duration: 600.ms);
   }
 
-  void _navigateToAuth() {
+  void _navigateToAuth() async {
     if (_selectedRole == null) return;
 
-    // For Super Admin, only check email restriction if user is already signed in
-    // Allow access to auth screen for first-time signup
+    // For Super Admin, check dynamic email restriction
     if (_selectedRole == AppConstants.roleSuperAdmin) {
       final currentUser = widget.user ?? FirebaseAuth.instance.currentUser;
-      // Only restrict if user is signed in but with wrong email
-      if (currentUser != null && currentUser.email != _superAdminEmail) {
-        _showSuperAdminError();
-        return;
+
+      if (currentUser != null) {
+        // User is already signed in, check if they can access super admin
+        final canAccess =
+            await RoleNavigationService.canAccessSuperAdmin(currentUser.email);
+        if (!canAccess) {
+          _showSuperAdminError();
+          return;
+        }
       }
+      // If no user is signed in, allow access to auth screen for signup/signin
     }
 
     if (widget.isAfterSignup && widget.user != null) {

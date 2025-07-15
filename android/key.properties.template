@@ -1,0 +1,23 @@
+# Android Keystore Properties Template
+# Copy this file to key.properties and fill in your actual values
+# DO NOT commit key.properties to version control
+
+# Release keystore configuration
+storePassword=your_store_password_here
+keyPassword=your_key_password_here
+keyAlias=your_key_alias_here
+storeFile=path/to/your/release.keystore
+
+# Example:
+# storePassword=myStorePassword123
+# keyPassword=myKeyPassword123
+# keyAlias=andco-release-key
+# storeFile=../keystores/andco-release.keystore
+
+# Instructions:
+# 1. Generate a release keystore using:
+#    keytool -genkey -v -keystore andco-release.keystore -alias andco-release-key -keyalg RSA -keysize 2048 -validity 10000
+# 2. Place the keystore file in a secure location (e.g., ../keystores/)
+# 3. Update the values above with your actual keystore information
+# 4. Copy this file to key.properties (without .template extension)
+# 5. Add key.properties to your .gitignore file
