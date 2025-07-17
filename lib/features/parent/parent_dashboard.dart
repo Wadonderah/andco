@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/services/firebase_service.dart';
 import '../../core/theme/app_colors.dart';
-import '../../shared/models/child_model.dart';
 import '../../shared/widgets/andco_logo.dart';
-import 'widgets/chat_screen.dart';
-import 'widgets/driver_info_screen.dart';
 import 'widgets/emergency_sos_screen.dart';
-import 'widgets/enhanced_add_child_screen.dart';
 import 'widgets/enhanced_child_management_screen.dart';
 import 'widgets/enhanced_payment_screen.dart';
 import 'widgets/enhanced_settings_screen.dart';
 import 'widgets/live_tracking_map.dart';
 import 'widgets/notifications_screen.dart';
-import 'widgets/ride_history_screen.dart';
+import 'widgets/support_screen.dart';
 
 class ParentDashboard extends StatefulWidget {
   const ParentDashboard({super.key});
@@ -48,23 +46,19 @@ class _ParentDashboardState extends State<ParentDashboard> {
         unselectedItemColor: AppColors.textSecondary,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
+            icon: Icon(Icons.home),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.location_on_outlined),
-            activeIcon: Icon(Icons.location_on),
+            icon: Icon(Icons.location_on),
             label: 'Track',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.child_care_outlined),
-            activeIcon: Icon(Icons.child_care),
+            icon: Icon(Icons.child_care),
             label: 'Children',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outlined),
-            activeIcon: Icon(Icons.person),
+            icon: Icon(Icons.person),
             label: 'Profile',
           ),
         ],
@@ -73,9 +67,14 @@ class _ParentDashboardState extends State<ParentDashboard> {
   }
 }
 
-class ParentHomeTab extends StatelessWidget {
+class ParentHomeTab extends ConsumerStatefulWidget {
   const ParentHomeTab({super.key});
 
+  @override
+  ConsumerState<ParentHomeTab> createState() => _ParentHomeTabState();
+}
+
+class _ParentHomeTabState extends ConsumerState<ParentHomeTab> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -86,30 +85,30 @@ class ParentHomeTab extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
+              // Header with logo and notifications
               Row(
                 children: [
-                  const AndcoLogo(size: 40, showShadow: false),
-                  const SizedBox(width: AppConstants.paddingSmall),
+                  const AndcoLogo(size: 40),
+                  const SizedBox(width: AppConstants.paddingMedium),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Good Morning!',
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
-                        ),
-                        Text(
-                          'Sarah Johnson',
+                          'Welcome Back!',
                           style: Theme.of(context)
                               .textTheme
                               .headlineSmall
                               ?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
+                        ),
+                        Text(
+                          'Track your children\'s safe journey',
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
                         ),
                       ],
                     ),
@@ -124,31 +123,20 @@ class ParentHomeTab extends StatelessWidget {
                             ),
                           );
                         },
-                        icon: const Icon(Icons.notifications_outlined),
-                        style: IconButton.styleFrom(
-                          backgroundColor: AppColors.surfaceVariant,
+                        icon: const Icon(
+                          Icons.notifications_outlined,
+                          color: AppColors.textPrimary,
                         ),
                       ),
-                      // Notification badge
                       Positioned(
                         right: 8,
                         top: 8,
                         child: Container(
-                          width: 12,
-                          height: 12,
+                          width: 8,
+                          height: 8,
                           decoration: const BoxDecoration(
                             color: AppColors.error,
                             shape: BoxShape.circle,
-                          ),
-                          child: const Center(
-                            child: Text(
-                              '2',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 8,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
                           ),
                         ),
                       ),
@@ -162,7 +150,7 @@ class ParentHomeTab extends StatelessWidget {
               // Quick Actions
               Text(
                 'Quick Actions',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
               ),
@@ -175,18 +163,63 @@ class ParentHomeTab extends StatelessWidget {
                       context,
                       'Track Bus',
                       Icons.location_on,
-                      AppColors.secondary,
-                      () {},
+                      AppColors.primary,
+                      () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const LiveTrackingMap(
+                            childId: 'default',
+                            busId: 'default',
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: AppConstants.paddingMedium),
                   Expanded(
                     child: _buildQuickActionCard(
                       context,
-                      'SOS Alert',
+                      'Emergency',
                       Icons.emergency,
                       AppColors.error,
-                      () {},
+                      () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const EmergencySOSScreen(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: AppConstants.paddingMedium),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildQuickActionCard(
+                      context,
+                      'Payments',
+                      Icons.payment,
+                      AppColors.success,
+                      () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const EnhancedPaymentScreen(),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppConstants.paddingMedium),
+                  Expanded(
+                    child: _buildQuickActionCard(
+                      context,
+                      'Support',
+                      Icons.support_agent,
+                      AppColors.info,
+                      () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const ParentSupportScreen(),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -194,69 +227,30 @@ class ParentHomeTab extends StatelessWidget {
 
               const SizedBox(height: AppConstants.paddingLarge),
 
-              // Children Status
+              // Children Status - Real Firebase Data
               Text(
                 'Children Status',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
               ),
               const SizedBox(height: AppConstants.paddingMedium),
 
-              _buildChildStatusCard(
-                context,
-                'Emma Johnson',
-                'Grade 5A',
-                'On Bus - ETA 8:15 AM',
-                Icons.directions_bus,
-                AppColors.success,
-              ),
-
-              const SizedBox(height: AppConstants.paddingMedium),
-
-              _buildChildStatusCard(
-                context,
-                'Alex Johnson',
-                'Grade 3B',
-                'At School',
-                Icons.school,
-                AppColors.info,
-              ),
+              // Real-time children status from Firebase
+              _buildChildrenStatusSection(),
 
               const SizedBox(height: AppConstants.paddingLarge),
 
-              // Recent Activity
+              // Recent Activity - Real Firebase Data
               Text(
                 'Recent Activity',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
               ),
               const SizedBox(height: AppConstants.paddingMedium),
 
-              _buildActivityCard(
-                context,
-                'Emma picked up',
-                '7:45 AM - Maple Street',
-                Icons.check_circle,
-                AppColors.success,
-              ),
-
-              _buildActivityCard(
-                context,
-                'Alex dropped off',
-                '8:10 AM - Lincoln Elementary',
-                Icons.school,
-                AppColors.info,
-              ),
-
-              _buildActivityCard(
-                context,
-                'Payment processed',
-                'Monthly subscription - \$120',
-                Icons.payment,
-                AppColors.primary,
-              ),
+              _buildRecentActivitySection(),
             ],
           ),
         ),
@@ -271,41 +265,103 @@ class ParentHomeTab extends StatelessWidget {
     Color color,
     VoidCallback onTap,
   ) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(AppConstants.paddingMedium),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-          border: Border.all(color: color.withOpacity(0.2)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(AppConstants.paddingSmall),
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
+    return Card(
+      elevation: 2,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+        child: Container(
+          padding: const EdgeInsets.all(AppConstants.paddingMedium),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+            border: Border.all(color: color.withValues(alpha: 0.2)),
+          ),
+          child: Column(
+            children: [
+              Icon(
                 icon,
-                color: Colors.white,
-                size: AppConstants.iconMedium,
+                size: 32,
+                color: color,
               ),
-            ),
-            const SizedBox(height: AppConstants.paddingSmall),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: color,
-                  ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+              const SizedBox(height: AppConstants.paddingSmall),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: color,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildChildrenStatusSection() {
+    final user = FirebaseService.instance.auth.currentUser;
+    if (user == null) {
+      return const Center(child: Text('Please log in to view children status'));
+    }
+
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _getChildrenStatusStream(user.uid),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        final children = snapshot.data ?? [];
+
+        if (children.isEmpty) {
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppConstants.paddingLarge),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.child_care_outlined,
+                    size: 48,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: AppConstants.paddingMedium),
+                  Text(
+                    'No children added yet',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: AppConstants.paddingSmall),
+                  Text(
+                    'Add your children to start tracking their journey',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          children: children
+              .map((child) => _buildChildStatusCard(
+                    context,
+                    child['name'] ?? 'Unknown',
+                    child['grade'] ?? 'Unknown Grade',
+                    child['status'] ?? 'Unknown Status',
+                    _getStatusIcon(child['status']),
+                    _getStatusColor(child['status']),
+                  ))
+              .toList(),
+        );
+      },
     );
   }
 
@@ -318,15 +374,16 @@ class ParentHomeTab extends StatelessWidget {
     Color statusColor,
   ) {
     return Card(
+      margin: const EdgeInsets.only(bottom: AppConstants.paddingMedium),
       child: Padding(
         padding: const EdgeInsets.all(AppConstants.paddingMedium),
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: AppColors.parentColor.withOpacity(0.1),
+              backgroundColor: AppColors.parentColor.withValues(alpha: 0.1),
               child: Text(
                 name[0],
-                style: TextStyle(
+                style: const TextStyle(
                   color: AppColors.parentColor,
                   fontWeight: FontWeight.bold,
                 ),
@@ -345,7 +402,7 @@ class ParentHomeTab extends StatelessWidget {
                   ),
                   Text(
                     grade,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppColors.textSecondary,
                         ),
                   ),
@@ -358,7 +415,7 @@ class ParentHomeTab extends StatelessWidget {
                 vertical: 4,
               ),
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
+                color: statusColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
               ),
               child: Row(
@@ -374,8 +431,8 @@ class ParentHomeTab extends StatelessWidget {
                     status,
                     style: TextStyle(
                       color: statusColor,
-                      fontSize: 12,
                       fontWeight: FontWeight.w500,
+                      fontSize: 12,
                     ),
                   ),
                 ],
@@ -387,22 +444,83 @@ class ParentHomeTab extends StatelessWidget {
     );
   }
 
+  Widget _buildRecentActivitySection() {
+    final user = FirebaseService.instance.auth.currentUser;
+    if (user == null) {
+      return const Center(child: Text('Please log in to view recent activity'));
+    }
+
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _getRecentActivityStream(user.uid),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        final activities = snapshot.data ?? [];
+
+        if (activities.isEmpty) {
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppConstants.paddingLarge),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.history,
+                    size: 48,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: AppConstants.paddingMedium),
+                  Text(
+                    'No recent activity',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: AppConstants.paddingSmall),
+                  Text(
+                    'Activity will appear here once your children start using the transport service',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          children: activities
+              .take(5)
+              .map((activity) => _buildActivityCard(
+                    context,
+                    activity['title'] ?? 'Unknown Activity',
+                    activity['description'] ?? 'No description',
+                    _getActivityIcon(activity['type']),
+                    _getActivityColor(activity['type']),
+                  ))
+              .toList(),
+        );
+      },
+    );
+  }
+
   Widget _buildActivityCard(
     BuildContext context,
     String title,
-    String subtitle,
+    String description,
     IconData icon,
     Color color,
   ) {
     return Card(
       margin: const EdgeInsets.only(bottom: AppConstants.paddingSmall),
       child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
+        leading: CircleAvatar(
+          backgroundColor: color.withValues(alpha: 0.1),
           child: Icon(
             icon,
             color: color,
@@ -413,15 +531,119 @@ class ParentHomeTab extends StatelessWidget {
           title,
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
-        subtitle: Text(subtitle),
+        subtitle: Text(description),
         trailing: Text(
-          'Just now',
+          _formatTime(DateTime.now()),
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: AppColors.textSecondary,
               ),
         ),
       ),
     );
+  }
+
+  // Helper methods for real Firebase data
+  Stream<List<Map<String, dynamic>>> _getChildrenStatusStream(String parentId) {
+    return FirebaseService.instance.firestore
+        .collection('children')
+        .where('parentId', isEqualTo: parentId)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => {
+                  'id': doc.id,
+                  ...doc.data(),
+                })
+            .toList());
+  }
+
+  Stream<List<Map<String, dynamic>>> _getRecentActivityStream(String parentId) {
+    return FirebaseService.instance.firestore
+        .collection('activities')
+        .where('parentId', isEqualTo: parentId)
+        .orderBy('timestamp', descending: true)
+        .limit(10)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => {
+                  'id': doc.id,
+                  ...doc.data(),
+                })
+            .toList());
+  }
+
+  IconData _getStatusIcon(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'on_bus':
+        return Icons.directions_bus;
+      case 'at_school':
+        return Icons.school;
+      case 'at_home':
+        return Icons.home;
+      case 'picked_up':
+        return Icons.check_circle;
+      default:
+        return Icons.help_outline;
+    }
+  }
+
+  Color _getStatusColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'on_bus':
+        return AppColors.warning;
+      case 'at_school':
+        return AppColors.info;
+      case 'at_home':
+        return AppColors.success;
+      case 'picked_up':
+        return AppColors.success;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+
+  IconData _getActivityIcon(String? type) {
+    switch (type?.toLowerCase()) {
+      case 'pickup':
+        return Icons.directions_bus;
+      case 'dropoff':
+        return Icons.school;
+      case 'payment':
+        return Icons.payment;
+      case 'notification':
+        return Icons.notifications;
+      default:
+        return Icons.info;
+    }
+  }
+
+  Color _getActivityColor(String? type) {
+    switch (type?.toLowerCase()) {
+      case 'pickup':
+        return AppColors.primary;
+      case 'dropoff':
+        return AppColors.success;
+      case 'payment':
+        return AppColors.warning;
+      case 'notification':
+        return AppColors.info;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+
+  String _formatTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inMinutes < 1) {
+      return 'Just now';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}h ago';
+    } else {
+      return '${difference.inDays}d ago';
+    }
   }
 }
 
@@ -430,831 +652,20 @@ class ParentTrackingTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppConstants.paddingMedium),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Text(
-                'Live Bus Tracking',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: AppConstants.paddingSmall),
-              Text(
-                'Track your children\'s buses in real-time',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-              ),
-
-              const SizedBox(height: AppConstants.paddingLarge),
-
-              // Active Buses
-              Text(
-                'Active Buses',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: AppConstants.paddingMedium),
-
-              _buildBusTrackingCard(
-                context,
-                'BUS-001',
-                'Emma Johnson',
-                'On Route - ETA 8 min',
-                'Lincoln Elementary',
-                AppColors.success,
-                () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const LiveTrackingMap(
-                        childId: 'emma_001',
-                        busId: 'bus_001',
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: AppConstants.paddingMedium),
-
-              _buildBusTrackingCard(
-                context,
-                'BUS-003',
-                'Alex Johnson',
-                'At School',
-                'Lincoln Elementary',
-                AppColors.info,
-                () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const LiveTrackingMap(
-                        childId: 'alex_002',
-                        busId: 'bus_003',
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: AppConstants.paddingLarge),
-
-              // Quick Actions
-              Text(
-                'Quick Actions',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: AppConstants.paddingMedium),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildQuickActionCard(
-                      context,
-                      'Emergency\nSOS',
-                      Icons.emergency,
-                      AppColors.error,
-                      () {
-                        _showSOSDialog(context);
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: AppConstants.paddingMedium),
-                  Expanded(
-                    child: _buildQuickActionCard(
-                      context,
-                      'Call\nDriver',
-                      Icons.phone,
-                      AppColors.primary,
-                      () {
-                        _callDriver(context);
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBusTrackingCard(
-    BuildContext context,
-    String busNumber,
-    String childName,
-    String status,
-    String destination,
-    Color statusColor,
-    VoidCallback onTap,
-  ) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(AppConstants.paddingMedium),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.directions_bus,
-                      color: statusColor,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: AppConstants.paddingSmall),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          busNumber,
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                        ),
-                        Text(
-                          childName,
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
-                      borderRadius:
-                          BorderRadius.circular(AppConstants.radiusSmall),
-                    ),
-                    child: Text(
-                      status,
-                      style: TextStyle(
-                        color: statusColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppConstants.paddingSmall),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.location_on,
-                    size: 16,
-                    color: AppColors.textSecondary,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Destination: $destination',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                  ),
-                  const Spacer(),
-                  const Icon(
-                    Icons.arrow_forward_ios,
-                    size: 16,
-                    color: AppColors.textSecondary,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickActionCard(
-    BuildContext context,
-    String title,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-  ) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(AppConstants.paddingMedium),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-          border: Border.all(color: color.withOpacity(0.2)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(AppConstants.paddingSmall),
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                color: Colors.white,
-                size: AppConstants.iconMedium,
-              ),
-            ),
-            const SizedBox(height: AppConstants.paddingSmall),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: color,
-                  ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showSOSDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Emergency SOS'),
-        content:
-            const Text('Are you sure you want to send an emergency alert?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Emergency alert sent!'),
-                  backgroundColor: AppColors.error,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Send SOS'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _callDriver(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Calling driver...'),
-        backgroundColor: AppColors.primary,
-      ),
+    return const LiveTrackingMap(
+      childId: 'default',
+      busId: 'default',
     );
   }
 }
 
-class ParentChildrenTab extends StatefulWidget {
+// Use the enhanced child management screen with real Firebase data
+class ParentChildrenTab extends StatelessWidget {
   const ParentChildrenTab({super.key});
 
   @override
-  State<ParentChildrenTab> createState() => _ParentChildrenTabState();
-}
-
-class _ParentChildrenTabState extends State<ParentChildrenTab> {
-  final List<ChildModel> _children = [
-    ChildModel(
-      id: '1',
-      name: 'Emma Johnson',
-      parentId: 'parent1',
-      schoolId: 'school1',
-      grade: '5A',
-      className: '5A',
-      dateOfBirth: DateTime(2015, 6, 15),
-      emergencyContact: 'Jane Johnson',
-      emergencyContactPhone: '+1 234 567 8900',
-      medicalInfo: 'Allergic to peanuts',
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    ),
-    ChildModel(
-      id: '2',
-      name: 'Alex Johnson',
-      parentId: 'parent1',
-      schoolId: 'school1',
-      grade: '3B',
-      className: '3B',
-      dateOfBirth: DateTime(2017, 3, 22),
-      emergencyContact: 'Jane Johnson',
-      emergencyContactPhone: '+1 234 567 8900',
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    ),
-  ];
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.all(AppConstants.paddingMedium),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'My Children',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                        ),
-                        Text(
-                          '${_children.length} children registered',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: _addChild,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Child'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.parentColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Children List
-            Expanded(
-              child: _children.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: AppConstants.paddingMedium),
-                      itemCount: _children.length,
-                      itemBuilder: (context, index) {
-                        final child = _children[index];
-                        return _buildChildCard(child);
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppColors.parentColor.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.child_care_outlined,
-              size: 64,
-              color: AppColors.parentColor,
-            ),
-          ),
-          const SizedBox(height: AppConstants.paddingLarge),
-          Text(
-            'No Children Added',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: AppConstants.paddingSmall),
-          Text(
-            'Add your children\'s profiles to start tracking their school transport',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppConstants.paddingLarge),
-          ElevatedButton.icon(
-            onPressed: _addChild,
-            icon: const Icon(Icons.add),
-            label: const Text('Add First Child'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.parentColor,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildChildCard(ChildModel child) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppConstants.paddingMedium),
-      child: Padding(
-        padding: const EdgeInsets.all(AppConstants.paddingMedium),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                // Profile Picture
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: AppColors.parentColor.withOpacity(0.1),
-                  backgroundImage:
-                      child.photoUrl != null && child.photoUrl!.isNotEmpty
-                          ? NetworkImage(child.photoUrl!)
-                          : null,
-                  child: child.photoUrl == null || child.photoUrl!.isEmpty
-                      ? Text(
-                          child.name[0],
-                          style: TextStyle(
-                            color: AppColors.parentColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 24,
-                          ),
-                        )
-                      : null,
-                ),
-                const SizedBox(width: AppConstants.paddingMedium),
-
-                // Child Info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        child.name,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.school,
-                            size: 16,
-                            color: AppColors.textSecondary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Grade ${child.grade} • Class ${child.className}',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(
-                                  color: AppColors.textSecondary,
-                                ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          if (child.medicalInfo != null &&
-                              child.medicalInfo!.isNotEmpty)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppColors.warning.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Text(
-                                'Medical Info',
-                                style: TextStyle(
-                                  color: AppColors.warning,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          Container(
-                            margin: const EdgeInsets.only(left: 4),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppColors.info.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              'Age ${child.age}',
-                              style: const TextStyle(
-                                color: AppColors.info,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Actions
-                PopupMenuButton<String>(
-                  onSelected: (action) => _handleChildAction(action, child),
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit),
-                          SizedBox(width: 8),
-                          Text('Edit'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'track',
-                      child: Row(
-                        children: [
-                          Icon(Icons.location_on),
-                          SizedBox(width: 8),
-                          Text('Track Bus'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'medical',
-                      child: Row(
-                        children: [
-                          Icon(Icons.medical_information),
-                          SizedBox(width: 8),
-                          Text('Medical Info'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, color: AppColors.error),
-                          SizedBox(width: 8),
-                          Text('Delete',
-                              style: TextStyle(color: AppColors.error)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-
-            const SizedBox(height: AppConstants.paddingMedium),
-
-            // Quick Info Row
-            Row(
-              children: [
-                _buildQuickInfo('Age', '${child.age} years', Icons.cake),
-                const SizedBox(width: AppConstants.paddingLarge),
-                _buildQuickInfo('Class', child.className, Icons.class_),
-                const SizedBox(width: AppConstants.paddingLarge),
-                _buildQuickInfo('Emergency',
-                    child.emergencyContact ?? 'Not set', Icons.phone),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickInfo(String label, String value, IconData icon) {
-    return Expanded(
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            size: 16,
-            color: AppColors.textSecondary,
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _addChild() async {
-    final result = await Navigator.of(context).push<ChildModel>(
-      MaterialPageRoute(
-        builder: (context) => const EnhancedAddChildScreen(),
-      ),
-    );
-
-    if (result != null) {
-      setState(() {
-        _children.add(result);
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${result.name} added successfully'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-    }
-  }
-
-  void _handleChildAction(String action, ChildModel child) {
-    switch (action) {
-      case 'edit':
-        _editChild(child);
-        break;
-      case 'track':
-        _trackChild(child);
-        break;
-      case 'medical':
-        _showMedicalInfo(child);
-        break;
-      case 'delete':
-        _deleteChild(child);
-        break;
-    }
-  }
-
-  void _editChild(ChildModel child) async {
-    final result = await Navigator.of(context).push<ChildModel>(
-      MaterialPageRoute(
-        builder: (context) => EnhancedAddChildScreen(child: child),
-      ),
-    );
-
-    if (result != null) {
-      setState(() {
-        final index = _children.indexWhere((c) => c.id == child.id);
-        if (index != -1) {
-          _children[index] = result;
-        }
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${result.name} updated successfully'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-    }
-  }
-
-  void _trackChild(ChildModel child) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => LiveTrackingMap(
-          childId: child.id,
-          busId: 'bus_001',
-        ),
-      ),
-    );
-  }
-
-  void _showMedicalInfo(ChildModel child) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('${child.name} - Medical Information'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildMedicalInfoRow('Age', '${child.age} years'),
-            _buildMedicalInfoRow('Grade', child.grade),
-            _buildMedicalInfoRow('Class', child.className),
-            if (child.medicalInfo != null && child.medicalInfo!.isNotEmpty)
-              _buildMedicalInfoRow('Medical Info', child.medicalInfo!),
-            _buildMedicalInfoRow(
-                'Emergency Contact', child.emergencyContact ?? 'Not set'),
-            _buildMedicalInfoRow(
-                'Emergency Phone', child.emergencyContactPhone ?? 'Not set'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMedicalInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          Expanded(child: Text(value)),
-        ],
-      ),
-    );
-  }
-
-  void _deleteChild(ChildModel child) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Child'),
-        content: Text(
-            'Are you sure you want to remove ${child.name} from your account?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _children.removeWhere((c) => c.id == child.id);
-              });
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${child.name} removed'),
-                  backgroundColor: AppColors.error,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
+    return const EnhancedChildManagementScreen();
   }
 }
 
@@ -1263,314 +674,6 @@ class ParentProfileTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppConstants.paddingMedium),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Profile Header
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppConstants.paddingMedium),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 40,
-                        backgroundColor: AppColors.parentColor.withOpacity(0.1),
-                        child: const Text(
-                          'SJ',
-                          style: TextStyle(
-                            color: AppColors.parentColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 24,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: AppConstants.paddingMedium),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Sarah Johnson',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                            ),
-                            Text(
-                              'sarah.johnson@email.com',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
-                            ),
-                            Text(
-                              '+1 234 567 8900',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () {},
-                        icon: const Icon(Icons.edit),
-                        style: IconButton.styleFrom(
-                          backgroundColor:
-                              AppColors.parentColor.withOpacity(0.1),
-                          foregroundColor: AppColors.parentColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: AppConstants.paddingLarge),
-
-              // Features Section
-              Text(
-                'Features & Services',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: AppConstants.paddingMedium),
-
-              _buildFeatureCard(
-                context,
-                'Driver & Vehicle Info',
-                'View driver profiles and vehicle details',
-                Icons.info_outline,
-                AppColors.driverColor,
-                () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const DriverInfoScreen(
-                        driverId: 'driver_001',
-                        busId: 'bus_001',
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              _buildFeatureCard(
-                context,
-                'Messages',
-                'Chat with drivers and school staff',
-                Icons.chat_bubble_outline,
-                AppColors.info,
-                () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const ChatListScreen(),
-                    ),
-                  );
-                },
-              ),
-
-              _buildFeatureCard(
-                context,
-                'Ride History',
-                'View detailed ride and attendance logs',
-                Icons.history,
-                AppColors.secondary,
-                () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const RideHistoryScreen(),
-                    ),
-                  );
-                },
-              ),
-
-              _buildFeatureCard(
-                context,
-                'Payments & Billing',
-                'Manage subscriptions and payment methods',
-                Icons.payment,
-                AppColors.success,
-                () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const EnhancedPaymentScreen(),
-                    ),
-                  );
-                },
-              ),
-
-              _buildFeatureCard(
-                context,
-                'Emergency SOS',
-                'Quick access to emergency services',
-                Icons.emergency,
-                AppColors.error,
-                () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const EmergencySOSScreen(),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: AppConstants.paddingLarge),
-
-              // Settings Section
-              Text(
-                'Settings',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: AppConstants.paddingMedium),
-
-              _buildSettingsTile(
-                context,
-                'App Settings',
-                'Theme, notifications, and preferences',
-                Icons.settings,
-                () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const EnhancedSettingsScreen(),
-                    ),
-                  );
-                },
-              ),
-
-              _buildSettingsTile(
-                context,
-                'Privacy & Security',
-                'Account security and privacy settings',
-                Icons.security,
-                () {},
-              ),
-
-              _buildSettingsTile(
-                context,
-                'Help & Support',
-                'Get help and contact support',
-                Icons.help_outline,
-                () {},
-              ),
-
-              _buildSettingsTile(
-                context,
-                'About',
-                'App version and legal information',
-                Icons.info_outline,
-                () {},
-              ),
-
-              const SizedBox(height: AppConstants.paddingLarge),
-
-              // Logout Button
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    _showLogoutDialog(context);
-                  },
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Logout'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.error,
-                    side: const BorderSide(color: AppColors.error),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFeatureCard(
-    BuildContext context,
-    String title,
-    String subtitle,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-  ) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppConstants.paddingSmall),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: color),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: onTap,
-      ),
-    );
-  }
-
-  Widget _buildSettingsTile(
-    BuildContext context,
-    String title,
-    String subtitle,
-    IconData icon,
-    VoidCallback onTap,
-  ) {
-    return ListTile(
-      leading: Icon(icon, color: AppColors.textSecondary),
-      title: Text(title),
-      subtitle: Text(subtitle),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-      onTap: onTap,
-    );
-  }
-
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: Implement logout logic
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Logged out successfully')),
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Logout'),
-          ),
-        ],
-      ),
-    );
+    return const EnhancedSettingsScreen();
   }
 }

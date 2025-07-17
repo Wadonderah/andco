@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/theme_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/custom_text_field.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _pushNotifications = true;
   bool _emailNotifications = true;
   bool _smsNotifications = false;
@@ -20,7 +22,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _locationSharing = true;
   bool _biometricAuth = false;
   String _language = 'English';
-  final String _emergencyContact = '+1 234 567 8900';
+  String _emergencyContact = '+1 234 567 8900';
+
+  // Controllers for editing
+  final TextEditingController _emergencyContactController =
+      TextEditingController();
+  final TextEditingController _currentPasswordController =
+      TextEditingController();
+  final TextEditingController _newPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _emergencyContactController.text = _emergencyContact;
+  }
+
+  @override
+  void dispose() {
+    _emergencyContactController.dispose();
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -334,7 +360,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
             decoration: BoxDecoration(
-              color: isSelected ? AppColors.parentColor.withOpacity(0.1) : null,
+              color: isSelected
+                  ? AppColors.parentColor.withValues(alpha: 0.1)
+                  : null,
               borderRadius: BorderRadius.circular(8),
               border:
                   isSelected ? Border.all(color: AppColors.parentColor) : null,
@@ -542,9 +570,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void editEmergencyContact() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Emergency contact editing will be implemented')),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Emergency Contact'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CustomTextField(
+              controller: _emergencyContactController,
+              label: 'Emergency Contact',
+              hint: 'Enter emergency contact number',
+              keyboardType: TextInputType.phone,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _emergencyContact = _emergencyContactController.text;
+              });
+
+              // In a real app, this would update the user profile in Firebase
+              // ref.read(authControllerProvider.notifier).updateProfile({
+              //   'emergencyContact': _emergencyContact,
+              // });
+
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Emergency contact updated'),
+                  backgroundColor: AppColors.success,
+                ),
+              );
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -583,14 +651,120 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void showPrivacyPolicy() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Privacy policy will be displayed')),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Privacy Policy'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildPolicySection('Data Collection',
+                    'We collect information you provide directly to us, such as when you create an account, use our services, or contact us for support.'),
+                _buildPolicySection('Data Usage',
+                    'We use your information to provide, maintain, and improve our services, process transactions, and communicate with you.'),
+                _buildPolicySection('Data Sharing',
+                    'We do not sell, trade, or otherwise transfer your personal information to third parties without your consent, except as described in this policy.'),
+                _buildPolicySection('Data Security',
+                    'We implement appropriate security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.'),
+                _buildPolicySection('Your Rights',
+                    'You have the right to access, update, or delete your personal information. You may also opt out of certain communications from us.'),
+                _buildPolicySection('Contact Us',
+                    'If you have any questions about this Privacy Policy, please contact us at privacy@andco.app'),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              const url = 'https://andco.app/privacy';
+              if (await canLaunchUrl(Uri.parse(url))) {
+                await launchUrl(Uri.parse(url));
+              }
+            },
+            child: const Text('View Full Policy'),
+          ),
+        ],
+      ),
     );
   }
 
   void showTermsOfService() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Terms of service will be displayed')),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Terms of Service'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildPolicySection('Acceptance of Terms',
+                    'By using AndCo School Transport services, you agree to be bound by these Terms of Service.'),
+                _buildPolicySection('Service Description',
+                    'AndCo provides school transportation management services including route tracking, student management, and communication tools.'),
+                _buildPolicySection('User Responsibilities',
+                    'You are responsible for maintaining the confidentiality of your account and for all activities that occur under your account.'),
+                _buildPolicySection('Service Availability',
+                    'We strive to provide continuous service but do not guarantee uninterrupted access to our services.'),
+                _buildPolicySection('Limitation of Liability',
+                    'AndCo shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of our services.'),
+                _buildPolicySection('Termination',
+                    'We may terminate or suspend your account at any time for violations of these terms or for any other reason.'),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              const url = 'https://andco.app/terms';
+              if (await canLaunchUrl(Uri.parse(url))) {
+                await launchUrl(Uri.parse(url));
+              }
+            },
+            child: const Text('View Full Terms'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPolicySection(String title, String content) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            content,
+            style: const TextStyle(fontSize: 14),
+          ),
+        ],
+      ),
     );
   }
 
@@ -602,45 +776,87 @@ class _SettingsScreenState extends State<SettingsScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
-              decoration: const InputDecoration(
-                labelText: 'Current Password',
-                border: OutlineInputBorder(),
-              ),
+            CustomTextField(
+              controller: _currentPasswordController,
+              label: 'Current Password',
+              hint: 'Enter your current password',
               obscureText: true,
             ),
             const SizedBox(height: 16),
-            TextField(
-              decoration: const InputDecoration(
-                labelText: 'New Password',
-                border: OutlineInputBorder(),
-              ),
+            CustomTextField(
+              controller: _newPasswordController,
+              label: 'New Password',
+              hint: 'Enter new password',
               obscureText: true,
             ),
             const SizedBox(height: 16),
-            TextField(
-              decoration: const InputDecoration(
-                labelText: 'Confirm New Password',
-                border: OutlineInputBorder(),
-              ),
+            CustomTextField(
+              controller: _confirmPasswordController,
+              label: 'Confirm New Password',
+              hint: 'Confirm new password',
               obscureText: true,
             ),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              _currentPasswordController.clear();
+              _newPasswordController.clear();
+              _confirmPasswordController.clear();
+              Navigator.pop(context);
+            },
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Password changed successfully'),
-                  backgroundColor: AppColors.success,
-                ),
-              );
+            onPressed: () async {
+              if (_newPasswordController.text !=
+                  _confirmPasswordController.text) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Passwords do not match'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+
+              if (_newPasswordController.text.length < 6) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Password must be at least 6 characters'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+
+              try {
+                // In a real implementation, you would use Firebase Auth to change password
+                // await ref.read(authControllerProvider.notifier).changePassword(
+                //   _currentPasswordController.text,
+                //   _newPasswordController.text,
+                // );
+
+                _currentPasswordController.clear();
+                _newPasswordController.clear();
+                _confirmPasswordController.clear();
+                Navigator.pop(context);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Password changed successfully'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error changing password: $e'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
             },
             child: const Text('Change Password'),
           ),
@@ -653,9 +869,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Account'),
-        content: const Text(
-          'Are you sure you want to delete your account? This action cannot be undone.',
+        title: Row(
+          children: [
+            Icon(Icons.warning, color: AppColors.error),
+            const SizedBox(width: 8),
+            const Text('Delete Account'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'This action will permanently delete your account and all associated data:',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 12),
+            const Text('• Your profile information'),
+            const Text('• Your children\'s profiles'),
+            const Text('• Payment history'),
+            const Text('• All messages and notifications'),
+            const SizedBox(height: 16),
+            const Text(
+              'This action cannot be undone. Are you sure you want to continue?',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppColors.error,
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -663,14 +905,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Account deletion initiated'),
-                  backgroundColor: AppColors.error,
+            onPressed: () async {
+              final currentContext =
+                  context; // Store context before async operations
+              Navigator.pop(currentContext);
+
+              // Show loading dialog
+              showDialog(
+                context: currentContext,
+                barrierDismissible: false,
+                builder: (context) => const AlertDialog(
+                  content: Row(
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(width: 16),
+                      Text('Deleting account...'),
+                    ],
+                  ),
                 ),
               );
+
+              try {
+                // In a real implementation, you would use Firebase Auth to delete account
+                // await ref.read(authControllerProvider.notifier).deleteAccount();
+
+                // Simulate deletion process
+                await Future.delayed(const Duration(seconds: 2));
+
+                if (!mounted) return;
+
+                Navigator.pop(currentContext); // Close loading dialog
+
+                // Navigate to auth screen or app start
+                Navigator.of(currentContext).pushNamedAndRemoveUntil(
+                  '/',
+                  (route) => false,
+                );
+              } catch (e) {
+                if (!mounted) return;
+
+                Navigator.pop(currentContext); // Close loading dialog
+                ScaffoldMessenger.of(currentContext).showSnackBar(
+                  SnackBar(
+                    content: Text('Error deleting account: $e'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,

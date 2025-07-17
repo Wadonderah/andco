@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/firebase_providers.dart';
+import '../../../core/services/firebase_service.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/payment_model.dart';
@@ -1679,9 +1680,319 @@ class _EnhancedPaymentScreenState extends ConsumerState<EnhancedPaymentScreen>
   }
 
   void _addCreditCard() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Add Credit Card - Coming Soon')),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.8,
+        maxChildSize: 0.9,
+        minChildSize: 0.5,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Expanded(
+                child: _buildAddCreditCardForm(scrollController),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
+  }
+
+  Widget _buildAddCreditCardForm(ScrollController scrollController) {
+    final cardNumberController = TextEditingController();
+    final expiryController = TextEditingController();
+    final cvvController = TextEditingController();
+    final nameController = TextEditingController();
+
+    return SingleChildScrollView(
+      controller: scrollController,
+      padding: const EdgeInsets.all(AppConstants.paddingMedium),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Add Credit Card',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: AppConstants.paddingLarge),
+
+          // Card Number
+          TextFormField(
+            controller: cardNumberController,
+            decoration: const InputDecoration(
+              labelText: 'Card Number',
+              hintText: '1234 5678 9012 3456',
+              prefixIcon: Icon(Icons.credit_card),
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.number,
+            maxLength: 19,
+            onChanged: (value) {
+              // Format card number with spaces
+              final formatted = _formatCardNumber(value);
+              if (formatted != value) {
+                cardNumberController.value =
+                    cardNumberController.value.copyWith(
+                  text: formatted,
+                  selection: TextSelection.collapsed(offset: formatted.length),
+                );
+              }
+            },
+          ),
+          const SizedBox(height: AppConstants.paddingMedium),
+
+          Row(
+            children: [
+              // Expiry Date
+              Expanded(
+                child: TextFormField(
+                  controller: expiryController,
+                  decoration: const InputDecoration(
+                    labelText: 'Expiry Date',
+                    hintText: 'MM/YY',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                  maxLength: 5,
+                  onChanged: (value) {
+                    final formatted = _formatExpiryDate(value);
+                    if (formatted != value) {
+                      expiryController.value = expiryController.value.copyWith(
+                        text: formatted,
+                        selection:
+                            TextSelection.collapsed(offset: formatted.length),
+                      );
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: AppConstants.paddingMedium),
+
+              // CVV
+              Expanded(
+                child: TextFormField(
+                  controller: cvvController,
+                  decoration: const InputDecoration(
+                    labelText: 'CVV',
+                    hintText: '123',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                  maxLength: 4,
+                  obscureText: true,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppConstants.paddingMedium),
+
+          // Cardholder Name
+          TextFormField(
+            controller: nameController,
+            decoration: const InputDecoration(
+              labelText: 'Cardholder Name',
+              hintText: 'John Doe',
+              prefixIcon: Icon(Icons.person),
+              border: OutlineInputBorder(),
+            ),
+            textCapitalization: TextCapitalization.words,
+          ),
+          const SizedBox(height: AppConstants.paddingLarge),
+
+          // Security Notice
+          Container(
+            padding: const EdgeInsets.all(AppConstants.paddingMedium),
+            decoration: BoxDecoration(
+              color: AppColors.info.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+              border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.security, color: AppColors.info),
+                const SizedBox(width: AppConstants.paddingSmall),
+                Expanded(
+                  child: Text(
+                    'Your card information is encrypted and secure. We use industry-standard security measures to protect your data.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.info,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppConstants.paddingLarge),
+
+          // Add Card Button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => _saveCreditCard(
+                cardNumberController.text,
+                expiryController.text,
+                cvvController.text,
+                nameController.text,
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: const Text(
+                'Add Card',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatCardNumber(String value) {
+    // Remove all non-digits
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+
+    // Add spaces every 4 digits
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      if (i > 0 && i % 4 == 0) {
+        buffer.write(' ');
+      }
+      buffer.write(digits[i]);
+    }
+
+    return buffer.toString();
+  }
+
+  String _formatExpiryDate(String value) {
+    // Remove all non-digits
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+
+    if (digits.length >= 2) {
+      return '${digits.substring(0, 2)}/${digits.substring(2)}';
+    }
+
+    return digits;
+  }
+
+  Future<void> _saveCreditCard(
+      String cardNumber, String expiry, String cvv, String name) async {
+    try {
+      // Validate inputs
+      if (cardNumber.replaceAll(' ', '').length < 13 ||
+          expiry.length != 5 ||
+          cvv.length < 3 ||
+          name.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please fill in all fields correctly'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      final user = FirebaseService.instance.auth.currentUser;
+      if (user == null) throw Exception('User not authenticated');
+
+      // In a real app, you would tokenize the card with Stripe
+      // For now, we'll store a masked version
+      final maskedCardNumber =
+          '**** **** **** ${cardNumber.replaceAll(' ', '').substring(cardNumber.replaceAll(' ', '').length - 4)}';
+
+      await FirebaseService.instance.firestore
+          .collection('payment_methods')
+          .add({
+        'userId': user.uid,
+        'type': 'credit_card',
+        'cardNumber': maskedCardNumber,
+        'cardholderName': name,
+        'expiryDate': expiry,
+        'cardType': _getCardType(cardNumber),
+        'isDefault': false,
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+
+      // Close add card sheet
+      if (mounted) Navigator.of(context).pop();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Credit card added successfully'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+
+      // Refresh payment methods
+      setState(() {});
+    } catch (e) {
+      // Close loading dialog if open
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to add credit card: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  String _getCardType(String cardNumber) {
+    final digits = cardNumber.replaceAll(' ', '');
+
+    if (digits.startsWith('4')) {
+      return 'Visa';
+    } else if (digits.startsWith('5') || digits.startsWith('2')) {
+      return 'Mastercard';
+    } else if (digits.startsWith('3')) {
+      return 'American Express';
+    } else if (digits.startsWith('6')) {
+      return 'Discover';
+    }
+
+    return 'Unknown';
   }
 
   void _downloadReceipt(PaymentModel payment) {

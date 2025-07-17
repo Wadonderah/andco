@@ -14,10 +14,12 @@ class EnhancedSchoolManagementScreen extends ConsumerStatefulWidget {
   const EnhancedSchoolManagementScreen({super.key});
 
   @override
-  ConsumerState<EnhancedSchoolManagementScreen> createState() => _EnhancedSchoolManagementScreenState();
+  ConsumerState<EnhancedSchoolManagementScreen> createState() =>
+      _EnhancedSchoolManagementScreenState();
 }
 
-class _EnhancedSchoolManagementScreenState extends ConsumerState<EnhancedSchoolManagementScreen>
+class _EnhancedSchoolManagementScreenState
+    extends ConsumerState<EnhancedSchoolManagementScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
@@ -75,7 +77,7 @@ class _EnhancedSchoolManagementScreenState extends ConsumerState<EnhancedSchoolM
 
   Widget _buildPendingSchoolsTab() {
     final pendingSchoolsAsync = ref.watch(pendingSchoolsStreamProvider);
-    
+
     return pendingSchoolsAsync.when(
       data: (schools) => _buildSchoolsList(schools, isPending: true),
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -99,7 +101,7 @@ class _EnhancedSchoolManagementScreenState extends ConsumerState<EnhancedSchoolM
 
   Widget _buildActiveSchoolsTab() {
     final activeSchoolsAsync = ref.watch(activeSchoolsStreamProvider);
-    
+
     return activeSchoolsAsync.when(
       data: (schools) => _buildSchoolsList(schools, isPending: false),
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -123,7 +125,7 @@ class _EnhancedSchoolManagementScreenState extends ConsumerState<EnhancedSchoolM
 
   Widget _buildRejectedSchoolsTab() {
     final allSchoolsAsync = ref.watch(allSchoolsStreamProvider);
-    
+
     return allSchoolsAsync.when(
       data: (schools) {
         final rejectedSchools = schools.where((s) => s.isRejected).toList();
@@ -148,11 +150,14 @@ class _EnhancedSchoolManagementScreenState extends ConsumerState<EnhancedSchoolM
     );
   }
 
-  Widget _buildSchoolsList(List<SchoolModel> schools, {required bool isPending}) {
+  Widget _buildSchoolsList(List<SchoolModel> schools,
+      {required bool isPending}) {
     final filteredSchools = schools.where((school) {
       if (_searchQuery.isEmpty) return true;
       return school.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-             school.contactEmail.toLowerCase().contains(_searchQuery.toLowerCase());
+          school.contactEmail
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase());
     }).toList();
 
     return Column(
@@ -169,7 +174,8 @@ class _EnhancedSchoolManagementScreenState extends ConsumerState<EnhancedSchoolM
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
             onChanged: (value) {
               setState(() {
@@ -178,7 +184,7 @@ class _EnhancedSchoolManagementScreenState extends ConsumerState<EnhancedSchoolM
             },
           ),
         ),
-        
+
         // Schools List
         Expanded(
           child: filteredSchools.isEmpty
@@ -203,23 +209,23 @@ class _EnhancedSchoolManagementScreenState extends ConsumerState<EnhancedSchoolM
           Icon(
             isPending ? Icons.pending_actions : Icons.school,
             size: 64,
-            color: AppColors.textSecondary.withOpacity(0.5),
+            color: AppColors.textSecondary.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
           Text(
             isPending ? 'No Pending Schools' : 'No Schools Found',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppColors.textSecondary,
-            ),
+                  color: AppColors.textSecondary,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
-            isPending 
-              ? 'New school approval requests will appear here'
-              : 'Schools matching your search will appear here',
+            isPending
+                ? 'New school approval requests will appear here'
+                : 'Schools matching your search will appear here',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.textSecondary,
-            ),
+                  color: AppColors.textSecondary,
+                ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -261,9 +267,11 @@ class _EnhancedSchoolManagementScreenState extends ConsumerState<EnhancedSchoolM
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(school.status).withOpacity(0.1),
+                    color:
+                        _getStatusColor(school.status).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -277,22 +285,25 @@ class _EnhancedSchoolManagementScreenState extends ConsumerState<EnhancedSchoolM
                 ),
               ],
             ),
-            
+
             const SizedBox(height: AppConstants.paddingMedium),
-            
+
             // Details
             _buildDetailRow('Principal', school.principalName),
             _buildDetailRow('Phone', school.contactPhone),
             _buildDetailRow('Address', school.address),
             _buildDetailRow('Type', school.typeDisplayName),
-            _buildDetailRow('Subscription', school.subscriptionPlan.toUpperCase()),
-            _buildDetailRow('Created', DateFormat('MMM dd, yyyy').format(school.createdAt)),
-            
+            _buildDetailRow(
+                'Subscription', school.subscriptionPlan.toUpperCase()),
+            _buildDetailRow(
+                'Created', DateFormat('MMM dd, yyyy').format(school.createdAt)),
+
             if (school.rejectionReason != null)
-              _buildDetailRow('Rejection Reason', school.rejectionReason!, isError: true),
-            
+              _buildDetailRow('Rejection Reason', school.rejectionReason!,
+                  isError: true),
+
             const SizedBox(height: AppConstants.paddingMedium),
-            
+
             // Actions
             if (isPending) ...[
               Row(
@@ -398,8 +409,275 @@ class _EnhancedSchoolManagementScreenState extends ConsumerState<EnhancedSchoolM
   }
 
   Widget _buildAnalyticsTab() {
-    return const Center(
-      child: Text('Analytics Tab - Coming Soon'),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppConstants.paddingMedium),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Text(
+            'School Management Analytics',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.superAdminColor,
+                ),
+          ),
+          const SizedBox(height: AppConstants.paddingLarge),
+
+          // Key Metrics
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
+            crossAxisSpacing: AppConstants.paddingMedium,
+            mainAxisSpacing: AppConstants.paddingMedium,
+            childAspectRatio: 1.5,
+            children: [
+              _buildMetricCard(
+                'Active Schools',
+                '156',
+                Icons.school,
+                AppColors.success,
+                '+12%',
+              ),
+              _buildMetricCard(
+                'Total Students',
+                '8,432',
+                Icons.people,
+                AppColors.primary,
+                '+5%',
+              ),
+              _buildMetricCard(
+                'Active Drivers',
+                '324',
+                Icons.directions_bus,
+                AppColors.driverColor,
+                '+8%',
+              ),
+              _buildMetricCard(
+                'Monthly Revenue',
+                '\$45,230',
+                Icons.attach_money,
+                AppColors.warning,
+                '+15%',
+              ),
+            ],
+          ),
+
+          const SizedBox(height: AppConstants.paddingLarge),
+
+          // Performance Overview
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppConstants.paddingLarge),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Performance Overview',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: AppConstants.paddingMedium),
+
+                  // Performance indicators
+                  _buildPerformanceIndicator(
+                      'On-time Performance', 0.94, AppColors.success),
+                  const SizedBox(height: AppConstants.paddingSmall),
+                  _buildPerformanceIndicator(
+                      'Parent Satisfaction', 0.87, AppColors.primary),
+                  const SizedBox(height: AppConstants.paddingSmall),
+                  _buildPerformanceIndicator(
+                      'Driver Efficiency', 0.91, AppColors.driverColor),
+                  const SizedBox(height: AppConstants.paddingSmall),
+                  _buildPerformanceIndicator(
+                      'System Uptime', 0.99, AppColors.success),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: AppConstants.paddingLarge),
+
+          // Recent Issues
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppConstants.paddingLarge),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Recent Issues',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          // Navigate to full issues list
+                        },
+                        child: const Text('View All'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppConstants.paddingMedium),
+                  ...List.generate(
+                      4,
+                      (index) => _buildIssueItem(
+                            'Issue ${index + 1}',
+                            'Description of the issue that needs attention',
+                            index == 0
+                                ? 'High'
+                                : index == 1
+                                    ? 'Medium'
+                                    : 'Low',
+                            '${index + 1}h ago',
+                          )),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricCard(
+      String title, String value, IconData icon, Color color, String change) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppConstants.paddingMedium),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Icon(icon, size: 24, color: color),
+                Text(
+                  change,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: change.startsWith('+')
+                        ? AppColors.success
+                        : AppColors.error,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPerformanceIndicator(String title, double value, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+            Text('${(value * 100).toInt()}%',
+                style: TextStyle(color: color, fontWeight: FontWeight.w600)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        LinearProgressIndicator(
+          value: value,
+          backgroundColor: AppColors.surfaceVariant,
+          valueColor: AlwaysStoppedAnimation<Color>(color),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildIssueItem(
+      String title, String description, String priority, String time) {
+    Color priorityColor = priority == 'High'
+        ? AppColors.error
+        : priority == 'Medium'
+            ? AppColors.warning
+            : AppColors.success;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppConstants.paddingSmall),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: priorityColor,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: AppConstants.paddingSmall),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: const TextStyle(fontWeight: FontWeight.w500)),
+                Text(
+                  description,
+                  style:
+                      TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: priorityColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  priority,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: priorityColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                time,
+                style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -422,7 +700,7 @@ class _EnhancedSchoolManagementScreenState extends ConsumerState<EnhancedSchoolM
   Future<void> _approveSchool(SchoolModel school) async {
     final authState = ref.read(authControllerProvider);
     final user = authState.value;
-    
+
     if (user == null) return;
 
     final confirmed = await _showConfirmationDialog(
@@ -472,7 +750,7 @@ class _EnhancedSchoolManagementScreenState extends ConsumerState<EnhancedSchoolM
   Future<void> _rejectSchool(SchoolModel school) async {
     final authState = ref.read(authControllerProvider);
     final user = authState.value;
-    
+
     if (user == null) return;
 
     final reason = await _showRejectDialog(school.name);
@@ -538,7 +816,7 @@ class _EnhancedSchoolManagementScreenState extends ConsumerState<EnhancedSchoolM
 
   Future<String?> _showRejectDialog(String schoolName) async {
     final controller = TextEditingController();
-    
+
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -571,7 +849,7 @@ class _EnhancedSchoolManagementScreenState extends ConsumerState<EnhancedSchoolM
         ],
       ),
     );
-    
+
     controller.dispose();
     return result?.isNotEmpty == true ? result : null;
   }

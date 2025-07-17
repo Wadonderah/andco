@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -489,35 +490,43 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> {
               ),
               child: Stack(
                 children: [
-                  // Map placeholder
-                  Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.map_outlined,
-                          size: 64,
-                          color: AppColors.textSecondary.withValues(alpha: 0.5),
-                        ),
-                        const SizedBox(height: AppConstants.paddingMedium),
-                        Text(
-                          'Live GPS Map',
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
-                        ),
-                        const SizedBox(height: AppConstants.paddingSmall),
-                        Text(
-                          'Real-time bus location tracking',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: AppColors.textSecondary
-                                        .withValues(alpha: 0.7),
-                                  ),
-                        ),
-                      ],
-                    ),
+                  // Real-time GPS Map
+                  StreamBuilder<DocumentSnapshot>(
+                    stream: FirebaseService.instance.firestore
+                        .collection('bus_locations')
+                        .doc(widget.busId)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (snapshot.hasError ||
+                          !snapshot.hasData ||
+                          !snapshot.data!.exists) {
+                        return _buildMapPlaceholder();
+                      }
+
+                      final busData =
+                          snapshot.data!.data() as Map<String, dynamic>;
+                      final latitude = busData['latitude'] as double?;
+                      final longitude = busData['longitude'] as double?;
+                      final lastUpdated = busData['lastUpdated'] as String?;
+                      final speed = busData['speed'] as double?;
+                      final heading = busData['heading'] as double?;
+
+                      if (latitude == null || longitude == null) {
+                        return _buildMapPlaceholder();
+                      }
+
+                      return _buildRealTimeMap(
+                        latitude: latitude,
+                        longitude: longitude,
+                        lastUpdated: lastUpdated,
+                        speed: speed,
+                        heading: heading,
+                      );
+                    },
                   ),
 
                   // Mock bus location indicator
@@ -909,5 +918,186 @@ class _LiveTrackingMapState extends ConsumerState<LiveTrackingMap> {
         ),
       ],
     );
+  }
+
+  /// Build map placeholder when no location data is available
+  Widget _buildMapPlaceholder() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.map_outlined,
+            size: 64,
+            color: AppColors.textSecondary.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: AppConstants.paddingMedium),
+          Text(
+            'Live GPS Map',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+          ),
+          const SizedBox(height: AppConstants.paddingSmall),
+          Text(
+            'Waiting for bus location data...',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary.withValues(alpha: 0.7),
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build real-time map with bus location
+  Widget _buildRealTimeMap({
+    required double latitude,
+    required double longitude,
+    String? lastUpdated,
+    double? speed,
+    double? heading,
+  }) {
+    return Stack(
+      children: [
+        // Google Map
+        GoogleMap(
+          onMapCreated: (GoogleMapController controller) {
+            _mapController = controller;
+            _animateToLocation(LatLng(latitude, longitude));
+          },
+          initialCameraPosition: CameraPosition(
+            target: LatLng(latitude, longitude),
+            zoom: 15.0,
+          ),
+          markers: {
+            Marker(
+              markerId: const MarkerId('bus_location'),
+              position: LatLng(latitude, longitude),
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                  BitmapDescriptor.hueBlue),
+              infoWindow: InfoWindow(
+                title: 'School Bus',
+                snippet: 'Last updated: ${_formatLastUpdated(lastUpdated)}',
+              ),
+              rotation: heading ?? 0.0,
+            ),
+          },
+          polylines: _polylines,
+          myLocationEnabled: true,
+          myLocationButtonEnabled: false,
+          zoomControlsEnabled: false,
+          mapToolbarEnabled: false,
+        ),
+
+        // Real-time info overlay
+        Positioned(
+          top: 16,
+          left: 16,
+          right: 16,
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppConstants.paddingMedium),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: _isLocationRecent(lastUpdated)
+                              ? AppColors.success
+                              : AppColors.warning,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _isLocationRecent(lastUpdated)
+                            ? 'Live Tracking'
+                            : 'Last Known Location',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  if (speed != null) ...[
+                    Text('Speed: ${speed.toStringAsFixed(1)} km/h'),
+                    const SizedBox(height: 4),
+                  ],
+                  Text('Updated: ${_formatLastUpdated(lastUpdated)}'),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // Center on bus button
+        Positioned(
+          bottom: 100,
+          right: 16,
+          child: FloatingActionButton(
+            mini: true,
+            onPressed: () => _animateToLocation(LatLng(latitude, longitude)),
+            backgroundColor: AppColors.primary,
+            child: const Icon(Icons.my_location, color: Colors.white),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Animate map camera to specific location
+  void _animateToLocation(LatLng location) {
+    _mapController?.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: location,
+          zoom: 15.0,
+        ),
+      ),
+    );
+  }
+
+  /// Check if location data is recent (within last 5 minutes)
+  bool _isLocationRecent(String? lastUpdated) {
+    if (lastUpdated == null) return false;
+
+    try {
+      final updateTime = DateTime.parse(lastUpdated);
+      final now = DateTime.now();
+      final difference = now.difference(updateTime);
+      return difference.inMinutes <= 5;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Format last updated time for display
+  String _formatLastUpdated(String? lastUpdated) {
+    if (lastUpdated == null) return 'Unknown';
+
+    try {
+      final updateTime = DateTime.parse(lastUpdated);
+      final now = DateTime.now();
+      final difference = now.difference(updateTime);
+
+      if (difference.inMinutes < 1) {
+        return 'Just now';
+      } else if (difference.inMinutes < 60) {
+        return '${difference.inMinutes}m ago';
+      } else if (difference.inHours < 24) {
+        return '${difference.inHours}h ago';
+      } else {
+        return '${difference.inDays}d ago';
+      }
+    } catch (e) {
+      return 'Unknown';
+    }
   }
 }

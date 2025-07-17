@@ -16,20 +16,25 @@ class MPesaService {
   static const String _sandboxBaseUrl = 'https://sandbox.safaricom.co.ke';
   static const String _productionBaseUrl = 'https://api.safaricom.co.ke';
 
-  // Sandbox credentials (replace with your actual credentials)
+  // Environment-based credentials (loaded from secure storage or environment)
+  String? _consumerKey;
+  String? _consumerSecret;
+  String? _passkey;
+  String? _shortCode;
+  String? _callbackUrl;
+
+  // Default credentials for development/testing
   static const String _sandboxConsumerKey = 'your_sandbox_consumer_key';
   static const String _sandboxConsumerSecret = 'your_sandbox_consumer_secret';
   static const String _sandboxPasskey =
       'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919';
+  static const String _sandboxShortCode = '174379';
 
   // Production credentials (replace with your actual credentials)
   static const String _productionConsumerKey = 'your_production_consumer_key';
   static const String _productionConsumerSecret =
       'your_production_consumer_secret';
   static const String _productionPasskey = 'your_production_passkey';
-
-  // Business short code
-  static const String _sandboxShortCode = '174379';
   static const String _productionShortCode = 'your_production_shortcode';
 
   bool _isInitialized = false;
@@ -38,22 +43,51 @@ class MPesaService {
   String? _accessToken;
   DateTime? _tokenExpiry;
 
-  /// Initialize M-Pesa service
-  Future<void> initialize({bool isProduction = false}) async {
-    if (_isInitialized) return;
-
+  /// Initialize M-Pesa service with credentials
+  Future<void> initialize({
+    bool isProduction = false,
+    String? consumerKey,
+    String? consumerSecret,
+    String? passkey,
+    String? shortCode,
+    String? callbackUrl,
+  }) async {
     try {
-      await _getAccessToken(isProduction: isProduction);
-      _isInitialized = true;
+      // Use provided credentials or fall back to defaults
+      _consumerKey = consumerKey ??
+          (isProduction ? _productionConsumerKey : _sandboxConsumerKey);
+      _consumerSecret = consumerSecret ??
+          (isProduction ? _productionConsumerSecret : _sandboxConsumerSecret);
+      _passkey =
+          passkey ?? (isProduction ? _productionPasskey : _sandboxPasskey);
+      _shortCode = shortCode ??
+          (isProduction ? _productionShortCode : _sandboxShortCode);
+      _callbackUrl = callbackUrl ?? 'https://your-app.com/mpesa/callback';
 
+      // Validate credentials
+      if (_consumerKey == null || _consumerKey!.contains('your_')) {
+        throw MPesaException(
+            'Invalid M-Pesa consumer key. Please set proper credentials.');
+      }
+      if (_consumerSecret == null || _consumerSecret!.contains('your_')) {
+        throw MPesaException(
+            'Invalid M-Pesa consumer secret. Please set proper credentials.');
+      }
+
+      // Test authentication
+      await _ensureValidToken(isProduction: isProduction);
+
+      _isInitialized = true;
       debugPrint('✅ M-Pesa service initialized successfully');
-      await FirebaseService.instance.logEvent('mpesa_initialized', {
+
+      await FirebaseService.instance.logEvent('mpesa_service_initialized', {
         'environment': isProduction ? 'production' : 'sandbox',
+        'timestamp': DateTime.now().toIso8601String(),
       });
     } catch (e) {
-      debugPrint('❌ Failed to initialize M-Pesa service: $e');
+      debugPrint('❌ M-Pesa initialization failed: $e');
       await FirebaseService.instance.logError(e, StackTrace.current,
-          reason: 'M-Pesa initialization failed');
+          reason: 'M-Pesa service initialization failed');
       rethrow;
     }
   }
@@ -68,10 +102,10 @@ class MPesaService {
     }
 
     final baseUrl = isProduction ? _productionBaseUrl : _sandboxBaseUrl;
-    final consumerKey =
-        isProduction ? _productionConsumerKey : _sandboxConsumerKey;
-    final consumerSecret =
-        isProduction ? _productionConsumerSecret : _sandboxConsumerSecret;
+    final consumerKey = _consumerKey ??
+        (isProduction ? _productionConsumerKey : _sandboxConsumerKey);
+    final consumerSecret = _consumerSecret ??
+        (isProduction ? _productionConsumerSecret : _sandboxConsumerSecret);
 
     final credentials =
         base64Encode(utf8.encode('$consumerKey:$consumerSecret'));
@@ -116,8 +150,10 @@ class MPesaService {
     await _ensureValidToken(isProduction: isProduction);
 
     final baseUrl = isProduction ? _productionBaseUrl : _sandboxBaseUrl;
-    final shortCode = isProduction ? _productionShortCode : _sandboxShortCode;
-    final passkey = isProduction ? _productionPasskey : _sandboxPasskey;
+    final shortCode =
+        _shortCode ?? (isProduction ? _productionShortCode : _sandboxShortCode);
+    final passkey =
+        _passkey ?? (isProduction ? _productionPasskey : _sandboxPasskey);
 
     // Format phone number (remove + and ensure it starts with 254)
     String formattedPhone = phoneNumber.replaceAll('+', '').replaceAll(' ', '');
@@ -191,8 +227,10 @@ class MPesaService {
     await _ensureValidToken(isProduction: isProduction);
 
     final baseUrl = isProduction ? _productionBaseUrl : _sandboxBaseUrl;
-    final shortCode = isProduction ? _productionShortCode : _sandboxShortCode;
-    final passkey = isProduction ? _productionPasskey : _sandboxPasskey;
+    final shortCode =
+        _shortCode ?? (isProduction ? _productionShortCode : _sandboxShortCode);
+    final passkey =
+        _passkey ?? (isProduction ? _productionPasskey : _sandboxPasskey);
 
     // Generate timestamp
     final timestamp = DateTime.now()
@@ -481,6 +519,147 @@ class MPesaService {
       debugPrint('❌ Error creating M-Pesa payment record: $e');
       await FirebaseService.instance.logError(e, StackTrace.current,
           reason: 'Failed to create M-Pesa payment record');
+    }
+  }
+
+  /// Get M-Pesa transaction history for a user
+  Future<List<Map<String, dynamic>>> getTransactionHistory({
+    required String userId,
+    int limit = 20,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    try {
+      var query = FirebaseService.instance.firestore
+          .collection('payments')
+          .where('userId', isEqualTo: userId)
+          .where('paymentMethod', isEqualTo: 'mpesa')
+          .orderBy('createdAt', descending: true);
+
+      if (startDate != null) {
+        query = query.where('createdAt',
+            isGreaterThanOrEqualTo: startDate.toIso8601String());
+      }
+      if (endDate != null) {
+        query = query.where('createdAt',
+            isLessThanOrEqualTo: endDate.toIso8601String());
+      }
+
+      final snapshot = await query.limit(limit).get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'id': doc.id,
+          ...data,
+          'formattedAmount': 'KES ${data['amount']?.toString() ?? '0'}',
+          'formattedDate': _formatTransactionDate(data['createdAt']),
+          'statusIcon': _getStatusIcon(data['status']),
+          'statusColor': _getStatusColor(data['status']),
+        };
+      }).toList();
+    } catch (e) {
+      debugPrint('❌ Failed to get transaction history: $e');
+      await FirebaseService.instance.logError(e, StackTrace.current,
+          reason: 'Failed to get M-Pesa transaction history');
+      return [];
+    }
+  }
+
+  /// Generate M-Pesa receipt for a transaction
+  Future<Map<String, dynamic>?> generateReceipt({
+    required String transactionId,
+  }) async {
+    try {
+      final doc = await FirebaseService.instance.firestore
+          .collection('payments')
+          .doc(transactionId)
+          .get();
+
+      if (!doc.exists) {
+        throw Exception('Transaction not found');
+      }
+
+      final data = doc.data()!;
+
+      return {
+        'receiptNumber': data['mpesaReceiptNumber'] ?? 'N/A',
+        'transactionId': transactionId,
+        'amount': data['amount'],
+        'phoneNumber': data['phoneNumber'],
+        'description': data['description'],
+        'status': data['status'],
+        'createdAt': data['createdAt'],
+        'completedAt': data['completedAt'],
+        'formattedAmount': 'KES ${data['amount']?.toString() ?? '0'}',
+        'formattedDate': _formatTransactionDate(data['createdAt']),
+        'qrCode': await _generateReceiptQRCode(transactionId, data),
+      };
+    } catch (e) {
+      debugPrint('❌ Failed to generate receipt: $e');
+      await FirebaseService.instance.logError(e, StackTrace.current,
+          reason: 'Failed to generate M-Pesa receipt');
+      return null;
+    }
+  }
+
+  /// Helper methods for transaction formatting
+  String _formatTransactionDate(dynamic dateTime) {
+    try {
+      if (dateTime is String) {
+        final date = DateTime.parse(dateTime);
+        return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+      }
+      return 'Unknown';
+    } catch (e) {
+      return 'Invalid Date';
+    }
+  }
+
+  String _getStatusIcon(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+        return '✅';
+      case 'pending':
+        return '⏳';
+      case 'failed':
+        return '❌';
+      case 'cancelled':
+        return '🚫';
+      default:
+        return '❓';
+    }
+  }
+
+  String _getStatusColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+        return '#4CAF50';
+      case 'pending':
+        return '#FF9800';
+      case 'failed':
+        return '#F44336';
+      case 'cancelled':
+        return '#9E9E9E';
+      default:
+        return '#607D8B';
+    }
+  }
+
+  /// Generate QR code data for receipt
+  Future<String> _generateReceiptQRCode(
+      String transactionId, Map<String, dynamic> data) async {
+    try {
+      final qrData = {
+        'type': 'mpesa_receipt',
+        'transactionId': transactionId,
+        'amount': data['amount'],
+        'receiptNumber': data['mpesaReceiptNumber'],
+        'timestamp': data['createdAt'],
+      };
+      return Uri.encodeComponent(qrData.toString());
+    } catch (e) {
+      return 'receipt_$transactionId';
     }
   }
 }

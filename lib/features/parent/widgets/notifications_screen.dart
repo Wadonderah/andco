@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/firebase_service.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/theme/app_colors.dart';
 
@@ -16,6 +17,15 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   String? _errorMessage;
   bool _notificationsEnabled = true;
+
+  // Notification settings
+  bool _pushNotifications = true;
+  bool _smsNotifications = false;
+  bool _emailNotifications = true;
+  bool _pickupAlerts = true;
+  bool _dropoffAlerts = true;
+  bool _emergencyAlerts = true;
+  bool _paymentReminders = true;
 
   @override
   void initState() {
@@ -524,8 +534,77 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return SwitchListTile(
       title: Text(title),
       value: value,
-      onChanged: (newValue) {
-        // Handle setting change
+      onChanged: (newValue) async {
+        try {
+          final user = FirebaseService.instance.auth.currentUser;
+          if (user == null) return;
+
+          // Update notification settings in Firebase
+          await FirebaseService.instance.firestore
+              .collection('user_settings')
+              .doc(user.uid)
+              .set({
+            'notifications': {
+              title.toLowerCase().replaceAll(' ', '_'): newValue,
+              'updated_at': DateTime.now().toIso8601String(),
+            }
+          }, SetOptions(merge: true));
+
+          // Update local state
+          setState(() {
+            // Update the corresponding setting based on title
+            switch (title) {
+              case 'Push Notifications':
+                _pushNotifications = newValue;
+                break;
+              case 'SMS Notifications':
+                _smsNotifications = newValue;
+                break;
+              case 'Email Notifications':
+                _emailNotifications = newValue;
+                break;
+              case 'Pickup Alerts':
+                _pickupAlerts = newValue;
+                break;
+              case 'Drop-off Alerts':
+                _dropoffAlerts = newValue;
+                break;
+              case 'Emergency Alerts':
+                _emergencyAlerts = newValue;
+                break;
+              case 'Payment Reminders':
+                _paymentReminders = newValue;
+                break;
+            }
+          });
+
+          // Show confirmation
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('$title ${newValue ? 'enabled' : 'disabled'}'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          }
+
+          // Log the setting change
+          await FirebaseService.instance
+              .logEvent('notification_setting_changed', {
+            'setting': title,
+            'enabled': newValue,
+            'user_id': user.uid,
+          });
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to update setting: $e'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+        }
       },
       activeColor: AppColors.parentColor,
     );

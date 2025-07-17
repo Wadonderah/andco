@@ -380,14 +380,206 @@ class _SchoolApprovalScreenState extends ConsumerState<SchoolApprovalScreen>
 
   /// Build analytics tab
   Widget _buildAnalyticsTab() {
-    return const Center(
-      child: Text(
-        'School Analytics Dashboard\n(Coming Soon)',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppConstants.paddingMedium),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Text(
+            'School Analytics Dashboard',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.superAdminColor,
+                ),
+          ),
+          const SizedBox(height: AppConstants.paddingLarge),
+
+          // Statistics Cards
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
+            crossAxisSpacing: AppConstants.paddingMedium,
+            mainAxisSpacing: AppConstants.paddingMedium,
+            childAspectRatio: 1.5,
+            children: [
+              _buildAnalyticsCard(
+                'Total Schools',
+                '42', // Mock data - would be calculated from real data
+                Icons.school,
+                AppColors.primary,
+              ),
+              _buildAnalyticsCard(
+                'Pending Approvals',
+                '8', // Mock data - would be calculated from real data
+                Icons.pending_actions,
+                AppColors.warning,
+              ),
+              _buildAnalyticsCard(
+                'Approved Schools',
+                '30', // Mock data - would be calculated from real data
+                Icons.check_circle,
+                AppColors.success,
+              ),
+              _buildAnalyticsCard(
+                'Rejected Schools',
+                '4', // Mock data - would be calculated from real data
+                Icons.cancel,
+                AppColors.error,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: AppConstants.paddingLarge),
+
+          // Charts Section
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppConstants.paddingLarge),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Application Trends',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: AppConstants.paddingMedium),
+                  SizedBox(
+                    height: 200,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.bar_chart,
+                            size: 48,
+                            color: AppColors.textSecondary,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Chart visualization would be implemented here\nusing a charting library like fl_chart',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: AppConstants.paddingLarge),
+
+          // Recent Activity
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppConstants.paddingLarge),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Recent Activity',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: AppConstants.paddingMedium),
+                  ...List.generate(
+                      5,
+                      (index) => _buildActivityItem(
+                            'School Application ${index + 1}',
+                            'New application submitted',
+                            '${index + 1} hour${index == 0 ? '' : 's'} ago',
+                            Icons.school,
+                          )),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnalyticsCard(
+      String title, String value, IconData icon, Color color) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppConstants.paddingMedium),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 32, color: color),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildActivityItem(
+      String title, String subtitle, String time, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppConstants.paddingSmall),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: AppColors.superAdminColor.withValues(alpha: 0.1),
+            child: Icon(icon, size: 16, color: AppColors.superAdminColor),
+          ),
+          const SizedBox(width: AppConstants.paddingSmall),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            time,
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
       ),
     );
   }
